@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "resiliencepilot/experiment_request.schema.json",
+  "$id": "multiagent-copilot/experiment_request.schema.json",
   "title": "ExperimentRequest",
   "description": "A human-approved request to run one allowlisted experiment. Unknown fields are rejected.",
   "type": "object",

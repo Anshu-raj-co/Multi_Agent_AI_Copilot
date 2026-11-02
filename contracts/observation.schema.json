@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "resiliencepilot/observation.schema.json",
+  "$id": "multiagent-copilot/observation.schema.json",
   "title": "Observation",
   "description": "One poll of GET /rfms/vehiclestatuses?latestOnly=true. Null means the signal was unavailable in that poll.",
   "type": "object",

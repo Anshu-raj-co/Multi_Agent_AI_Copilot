@@ -18,10 +18,10 @@ CATALOG = {
 }
 DEP_MAP = {"nodes": {"fms-forwarder": {"side": "vehicle"}, "databroker": {"side": "vehicle"},
                      "influxDB": {"side": "backend"}, "fms-server": {"side": "backend"},
-                     "fms-consumer": {"side": "backend"}, "grafana": {"side": "backend"}, "resiliencepilot": {"side": "host"}},
+                     "fms-consumer": {"side": "backend"}, "grafana": {"side": "backend"}, "multiagent-copilot": {"side": "host"}},
            "edges": [{"from": "fms-forwarder", "to": "databroker"}, {"from": "fms-consumer", "to": "influxDB"},
                      {"from": "fms-server", "to": "influxDB"}, {"from": "grafana", "to": "influxDB"},
-                     {"from": "resiliencepilot", "to": "fms-forwarder"}]}
+                     {"from": "multiagent-copilot", "to": "fms-forwarder"}]}
 
 
 def _dep(run_id, **kw):
@@ -43,7 +43,7 @@ def test_never_run_shared_store_ranks_first_with_exact_factors():
     dep, stall = entries["dependency_failure"], entries["telemetry_stall"]
     # dependency_failure: never run (0.4), 2/2 hypotheses (0.3), 3 neighbours = max (0.5), shared-store stop (0.2)
     assert dep["information"] == 0.7 and dep["risk"] == round(0.5 + 0.2 * 1.0, 3)
-    # host-side node (resiliencepilot) is not a neighbour: forwarder has only databroker
+    # host-side node (multiagent-copilot) is not a neighbour: forwarder has only databroker
     assert dep["evidence"]["dependents"] == ["fms-consumer", "fms-server", "grafana"]
     assert stall["evidence"]["dependents"] == ["databroker"]
     assert stall["risk"] == round(0.5 * 1 / 3 + 0.2 * 0.3, 3)

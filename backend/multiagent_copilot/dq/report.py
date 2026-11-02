@@ -124,7 +124,7 @@ def render_report(store: DQStore, now: datetime | None = None) -> str:
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Data Quality Report</title><style>{CSS}</style></head><body><main>
 <h1>Data Quality Report</h1>
-<p class="muted">ResiliencePilot data-quality gate · generated {escape(to_canonical(now))} · store
+<p class="muted">Multi-Agent Copilot data-quality gate · generated {escape(to_canonical(now))} · store
 <code>{escape(store.path.name)}</code> · <b>Synthetic logistics feed</b> (complements real rFMS telemetry; see
 docs/DATA_QUALITY.md).</p>
 <div class="tiles">

@@ -204,7 +204,7 @@ def test_render_text_lists_edges_and_diff():
     text = render_text(run_discovery(_ReadOnlyDocker(_stack()), PROJECT, load_map(REPO_ROOT), read_file=_FILES.get))
     assert "fms-forwarder    -> databroker       high" in text
     assert "discovered only    fms-forwarder -> csv-provider  (low confidence)" in text
-    assert "not discoverable   resiliencepilot" in text
+    assert "not discoverable   multiagent-copilot" in text
     assert "secret-influxdb-host-token" not in text
 
 

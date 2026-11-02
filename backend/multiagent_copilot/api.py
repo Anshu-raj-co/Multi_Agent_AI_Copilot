@@ -169,7 +169,7 @@ def create_app(cfg: SafetyConfig, catalog: dict[str, ExperimentSpec], ctl: Safet
         yield
         stop_monitor.set()
 
-    app = FastAPI(title="ResiliencePilot dashboard API", docs_url=None, redoc_url=None, lifespan=lifespan)
+    app = FastAPI(title="Multi-Agent Copilot dashboard API", docs_url=None, redoc_url=None, lifespan=lifespan)
     app.state.runner, app.state.ctl, app.state.live = runner, ctl, live
 
     def _latest_record() -> dict | None:
@@ -341,5 +341,5 @@ def serve(port: int = DEFAULT_PORT) -> None:
     observer = RfmsObserver(cfg.rfms_base_url, cfg.http_timeout_s)
     ctl = SafetyController(cfg, catalog, docker, observer=observer)
     app = create_app(cfg, catalog, ctl, docker, observer, EvidenceStore(cfg.data_dir))
-    print(f"ResiliencePilot dashboard: http://{HOST}:{port}/  (localhost only; Ctrl+C to stop)")
+    print(f"Multi-Agent Copilot dashboard: http://{HOST}:{port}/  (localhost only; Ctrl+C to stop)")
     uvicorn.run(app, host=HOST, port=port, log_level="warning")

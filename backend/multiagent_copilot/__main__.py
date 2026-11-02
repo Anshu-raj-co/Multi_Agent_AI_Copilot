@@ -71,7 +71,7 @@ def _load_conditions(docker, cfg, summary: dict, poll_interval_s: float) -> dict
         "csv_rows": rows,
         "vehicles": len(summary.get("vins", [])),
         "observer_poll_interval_s": poll_interval_s,
-        "other_clients": "not measured (ResiliencePilot starts no load generator; Grafana polls only while a browser has it open)",
+        "other_clients": "not measured (Multi-Agent Copilot starts no load generator; Grafana polls only while a browser has it open)",
         "docker_mem_total_gib": round(mem / 2**30, 2) if mem else None,
         "stack_stats": docker.stats(cfg.compose_project),
     }

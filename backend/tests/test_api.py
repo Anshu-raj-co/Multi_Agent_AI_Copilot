@@ -155,7 +155,7 @@ def test_status_reports_live_values_from_observer(env):
     s = env["a"].get("/api/status").json()
     assert s["latest"]["http_status"] == 200 and s["latest"]["data_age_s"] is not None
     assert s["stale_threshold_s"] == env["cfg"].stale_threshold_s
-    assert env["a"].get("/").status_code == 200 and "<title>ResiliencePilot Live</title>" in env["a"].get("/").text
+    assert env["a"].get("/").status_code == 200 and "<title>Multi-Agent Copilot Live</title>" in env["a"].get("/").text
 
 
 def test_api_module_has_no_safety_logic_of_its_own():

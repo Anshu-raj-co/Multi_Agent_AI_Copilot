@@ -2,7 +2,7 @@
 
 SYNTHETIC DATA NOTICE: every logistics field here (cargo temperature, quality grade, shelf life, truck status, region,
 record id) is synthetic. The Eclipse SDV Fleet Management Blueprint's rFMS API does not provide them. They complement
-the real rFMS telemetry (VIN, createdDateTime) that the rest of ResiliencePilot observes, so the data-quality gate can
+the real rFMS telemetry (VIN, createdDateTime) that the rest of Multi-Agent Copilot observes, so the data-quality gate can
 be demonstrated on a dirty multi-region feed. Nothing in this package touches the live stack or the safety controller.
 """
 from __future__ import annotations

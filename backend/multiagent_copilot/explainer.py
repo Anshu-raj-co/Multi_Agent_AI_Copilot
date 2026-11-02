@@ -132,7 +132,7 @@ TEMPLATE = r"""<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ResiliencePilot Day 1</title>
+<title>Multi-Agent Copilot Day 1</title>
 <style>
 :root{--bg:#f7f8fa;--card:#ffffff;--fg:#14171c;--muted:#5b6472;--line:#d9dee6;--accent:#2457c5;
 --ok:#1f8a4c;--bad:#c8323b;--warn:#b7791f;--shade:rgba(200,50,59,.09);--grid:#e8ecf2}
@@ -177,10 +177,10 @@ ul{margin:6px 0 0 18px;padding:0}
 <body>
 <main>
 <section id="hero">
-  <div style="font-size:12px;color:var(--muted);letter-spacing:.06em">RESILIENCEPILOT SDV · DAY 1 · READ-ONLY REPORT</div>
+  <div style="font-size:12px;color:var(--muted);letter-spacing:.06em">MULTI-AGENT COPILOT · DAY 1 · READ-ONLY REPORT</div>
   <h1>HTTP 200 is not the same as healthy data.</h1>
   <p class="lede">The Eclipse SDV Fleet Management rFMS API kept answering HTTP 200, with a fresh-looking
-  <code>receivedDateTime</code>, while the vehicle's own <code>createdDateTime</code> stopped advancing. ResiliencePilot detects
+  <code>receivedDateTime</code>, while the vehicle's own <code>createdDateTime</code> stopped advancing. Multi-Agent Copilot detects
   that from the data, injects it on purpose under a safety controller, and verifies recovery.</p>
   <div class="grid" id="heroStats"></div>
   <div class="src" id="srcHero"></div>
@@ -281,10 +281,10 @@ $("srcHero").innerHTML = src([R.source]);
 // ---------- architecture ----------
 var dep = D.dependency_map, faultView = false;
 var POS = {"csv-provider":[95,70],"databroker":[355,70],"fms-forwarder":[615,70],"fms-zenoh-router":[875,70],
-  "fms-consumer":[875,250],"influxDB":[615,250],"fms-server":[355,250],"grafana":[615,390],"resiliencepilot":[95,250]};
+  "fms-consumer":[875,250],"influxDB":[615,250],"fms-server":[355,250],"grafana":[615,390],"multiagent-copilot":[95,250]};
 var LABEL = {"csv-provider":"CSV provider","databroker":"KUKSA databroker","fms-forwarder":"fms-forwarder",
   "fms-zenoh-router":"Zenoh router","fms-consumer":"fms-consumer","influxDB":"InfluxDB","fms-server":"fms-server / rFMS API",
-  "grafana":"Grafana","resiliencepilot":"ResiliencePilot"};
+  "grafana":"Grafana","multiagent-copilot":"Multi-Agent Copilot"};
 function drawArch(){
   var W=970,H=440, box=$("archSvg"); box.innerHTML="";
   var s=svgEl("svg",{viewBox:"0 0 "+W+" "+H,width:"100%",role:"img","aria-label":"architecture diagram"});

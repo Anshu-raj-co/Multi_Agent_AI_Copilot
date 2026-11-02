@@ -119,7 +119,7 @@ def render_markdown(runs: list[dict], plan_entries: list[dict], source: str, ann
                  f"{sum(not s['scorable'] for s in ss)} / {sum(s['scorable'] and s['partial'] for s in ss)} | "
                  f"{_platforms([run_by_id.get(s['run_id'], {}) for s in full], plat)} |")
     L += ["", "TTD, TTR and silent polls are over full-window runs only. Platform is the host OS (CPU) that ran "
-          "ResiliencePilot, with the number of runs; on Apple Silicon, fms-server and fms-consumer run as emulated "
+          "Multi-Agent Copilot, with the number of runs; on Apple Silicon, fms-server and fms-consumer run as emulated "
           "linux/amd64 images (D-023), so latency and timing are not directly comparable across platforms.", "", "## Findings (most severe first)", ""]
     findings = derive_findings(runs)
     if not findings:

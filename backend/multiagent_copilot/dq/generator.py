@@ -100,7 +100,7 @@ def generate_feed(count: int, error_count: int, *, seed: int = 2026, now: dateti
         records.append(rec)
     return {
         "synthetic": True,
-        "note": "Synthetic logistics feed for the ResiliencePilot data-quality gate; complements real rFMS telemetry.",
+        "note": "Synthetic logistics feed for the Multi-Agent Copilot data-quality gate; complements real rFMS telemetry.",
         "generated_at": to_canonical(now), "seed": seed, "count": count,
         "expected_invalid": expected, "records": records,
     }

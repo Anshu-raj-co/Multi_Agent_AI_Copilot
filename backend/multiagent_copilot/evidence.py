@@ -9,7 +9,7 @@ from pathlib import Path
 
 
 def host_platform() -> dict:
-    """OS and CPU of the machine running ResiliencePilot, stored with each run so statistics can be compared fairly.
+    """OS and CPU of the machine running Multi-Agent Copilot, stored with each run so statistics can be compared fairly.
     The Docker VM may differ (e.g. linux/amd64 images emulated on Apple Silicon, D-023)."""
     system = platform.system()
     release = platform.mac_ver()[0] if system == "Darwin" else platform.release()

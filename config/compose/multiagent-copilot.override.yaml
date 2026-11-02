@@ -1,4 +1,4 @@
-# ResiliencePilot local override for the Eclipse SDV Fleet Management Blueprint.
+# Multi-Agent Copilot local override for the Eclipse SDV Fleet Management Blueprint.
 # The upstream compose files declare `overlay` networks, which require Docker Swarm.
 # For a single-host local sandbox we use plain bridge networks instead (see docs/DECISIONS.md D-002).
 networks:
@@ -10,7 +10,7 @@ networks:
     attachable: false
 
 # Host port for the KUKSA databroker is configurable (default 55555 upstream; see DECISIONS D-021).
-# Nothing in ResiliencePilot uses this host port; services reach the databroker over the fms-vehicle network.
+# Nothing in Multi-Agent Copilot uses this host port; services reach the databroker over the fms-vehicle network.
 services:
   databroker:
     ports: !override

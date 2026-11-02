@@ -1,1 +1,1 @@
-"""ResiliencePilot SDV backend."""
+"""Multi-Agent Copilot backend."""

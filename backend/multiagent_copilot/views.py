@@ -40,7 +40,7 @@ def render_dependency_map(dep: dict, docker=None) -> str:
            f"live_network = shared Docker network right now){C['x']}"]
     for e in dep["edges"]:
         conf = list(e["confidence"])
-        if docker is not None and e["from"] != "resiliencepilot":
+        if docker is not None and e["from"] != "multiagent-copilot":
             shared = set(docker.networks(e["from"])) & set(docker.networks(e["to"]))
             conf.append("live_network" if shared else f"{C['r']}NO shared network{C['x']}")
         path = f"{C['c']}*{C['x']}" if e["on_telemetry_path"] else " "

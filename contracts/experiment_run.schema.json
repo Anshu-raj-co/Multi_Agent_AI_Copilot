@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "resiliencepilot/experiment_run.schema.json",
+  "$id": "multiagent-copilot/experiment_run.schema.json",
   "title": "ExperimentRun",
   "description": "Evidence record persisted for every experiment, including aborted and unsafe ones. 'safety_threshold' is a legacy stop reason (Day 1); Day 2 records use guardrail_*.",
   "type": "object",
@@ -36,7 +36,7 @@
       ]
     },
     "platform": {
-      "description": "Host running ResiliencePilot (added 2026-10-11; absent in older records)",
+      "description": "Host running Multi-Agent Copilot (added 2026-10-11; absent in older records)",
       "type": "object",
       "properties": {
         "os": {
