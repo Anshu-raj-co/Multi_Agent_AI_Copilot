@@ -1,0 +1,24 @@
+{
+  "compose_project": "resiliencepilot-sdv",
+  "rfms_base_url": "http://127.0.0.1:8081",
+  "max_duration_s": 30,
+  "poll_interval_s": 0.5,
+  "http_timeout_s": 2.0,
+  "stale_threshold_s": 5.0,
+  "observer_loss_max_consecutive": 4,
+  "precheck_fresh_consecutive": 3,
+  "recovery_timeout_s": 30.0,
+  "recovery_consecutive": 3,
+  "watchdog_grace_s": 5.0,
+  "data_dir": "backend/data",
+  "guardrails": {
+    "max_error_rate": 0.0,
+    "error_min_samples": 5,
+    "latency_p95_multiplier": 5.0,
+    "latency_p95_floor_ms": 250.0,
+    "latency_window": 10,
+    "latency_min_samples": 5,
+    "blast_radius_interval_s": 0.5,
+    "blast_radius_max_snapshot_failures": 3
+  }
+}

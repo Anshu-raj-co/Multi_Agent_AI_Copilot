@@ -1,0 +1,226 @@
+"""Load safety limits and the experiment catalogue from config/."""
+from __future__ import annotations
+
+import json
+import os
+from dataclasses import dataclass, field
+from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+HARD_MAX_DURATION_S = 30  # non-negotiable ceiling; config may only lower it
+MAX_WATCHDOG_GRACE_S = 10.0
+MAX_ERROR_RATE = 0.5
+MAX_FAULT_OBSERVER_TIMEOUT_S = 8.0      # longest a single fault-window poll may wait for an answer (D-022; was 5.0)
+MAX_FAULT_LATENCY_P95_MS = 7500.0       # ceiling for a declared fault-window latency cap; must stay below the timeout (D-022)
+
+
+SUPPORTED_MECHANISMS = ("docker_pause", "docker_stop")
+
+# Named config profiles (config/profiles/<name>/), selected with RP_CONFIG_PROFILE. A profile is an overlay on the
+# default config: it may only change guardrail settings and a few per-experiment response limits, never targets,
+# mechanisms, durations, the compose project or the data dir (so the one-run lock stays shared). Every value still
+# passes the same bounds checks. Used to demonstrate guards live with deliberately tight thresholds.
+CONFIG_PROFILES = ("guardrail-demo-error-rate", "guardrail-demo-latency")
+PROFILE_SPEC_KEYS = frozenset({"description", "expected_symptoms", "risks", "expected_statuses", "max_error_rate",
+                               "fault_observer_timeout_s", "fault_latency_p95_max_ms", "max_duration_s"})
+# Tighten-only: each overridable guardrail number may only go DOWN (stricter / judged sooner) versus the default config.
+PROFILE_GUARDRAIL_KEYS = frozenset({"max_error_rate", "error_min_samples", "latency_p95_multiplier", "latency_p95_floor_ms",
+                                    "latency_min_samples", "blast_radius_interval_s", "blast_radius_max_snapshot_failures"})
+
+
+def _check_tightens(profile: str, what: str, key: str, base, new) -> None:
+    if base is None or new is None or new > base:
+        raise ValueError(f"profile {profile}: {what}.{key} may only be tightened (default {base!r}, profile {new!r})")
+
+
+def active_profile() -> str | None:
+    name = os.environ.get("RP_CONFIG_PROFILE", "").strip()
+    if not name or name == "default":
+        return None
+    if name not in CONFIG_PROFILES:
+        raise ValueError(f"RP_CONFIG_PROFILE must be one of {CONFIG_PROFILES} (or unset), got {name!r}")
+    return name
+
+
+def _profile_file(root: Path, profile: str | None, name: str) -> dict:
+    if profile is None:
+        return {}
+    p = root / "config" / "profiles" / profile / name
+    return json.loads(p.read_text(encoding="utf-8")) if p.is_file() else {}
+
+
+@dataclass(frozen=True)
+class Guardrails:
+    """Automatic abort-and-rollback conditions evaluated during the fault window.
+
+    error rate   : share of fault-window polls answered with a non-200 status (no-response polls are counted by
+                   observer-loss instead). max_error_rate 0.0: the first error aborts. Above 0: the rate is judged
+                   once `error_min_samples` responses exist (a single early error is not a 100 % rate).
+    latency p95  : rolling p95 of the last `latency_window` fault-window polls. Abort when it exceeds
+                   max(baseline_p95 * latency_p95_multiplier, latency_p95_floor_ms), once `latency_min_samples` exist.
+    blast radius : every compose-project container outside the experiment's declared blast_radius must keep the same
+                   id, status and start time. Checked by a monitor thread every `blast_radius_interval_s`.
+    """
+    max_error_rate: float = 0.0
+    error_min_samples: int = 5
+    latency_p95_multiplier: float = 5.0
+    latency_p95_floor_ms: float = 250.0
+    latency_window: int = 10
+    latency_min_samples: int = 5
+    blast_radius_interval_s: float = 0.5
+    blast_radius_max_snapshot_failures: int = 3
+
+    def __post_init__(self) -> None:
+        # lower AND upper bounds: config may tighten a guard, never switch it off inside a 30 s window
+        if not 0.0 <= self.max_error_rate <= MAX_ERROR_RATE:
+            raise ValueError(f"max_error_rate must be within [0, {MAX_ERROR_RATE}]")
+        if not 1 <= self.error_min_samples <= 10:
+            raise ValueError("error_min_samples must be within 1..10")
+        if not 1.0 <= self.latency_p95_multiplier <= 20.0 or not 0 < self.latency_p95_floor_ms <= 5000:
+            raise ValueError("latency guard: multiplier within 1..20, floor within (0, 5000] ms")
+        if not 1 <= self.latency_min_samples <= self.latency_window <= 30:
+            raise ValueError("need 1 <= latency_min_samples <= latency_window <= 30")
+        if not 0 < self.blast_radius_interval_s <= 2.0 or not 1 <= self.blast_radius_max_snapshot_failures <= 5:
+            raise ValueError("blast-radius monitor: interval within (0, 2] s, max_snapshot_failures within 1..5")
+
+
+@dataclass(frozen=True)
+class SafetyConfig:
+    compose_project: str
+    rfms_base_url: str
+    max_duration_s: int
+    poll_interval_s: float
+    http_timeout_s: float
+    stale_threshold_s: float
+    observer_loss_max_consecutive: int
+    precheck_fresh_consecutive: int
+    recovery_timeout_s: float
+    recovery_consecutive: int
+    watchdog_grace_s: float
+    data_dir: Path
+    guardrails: Guardrails = field(default_factory=Guardrails)
+    profile: str = "default"  # config profile in effect (recorded with every run)
+
+    def __post_init__(self) -> None:
+        if not 1 <= self.max_duration_s <= HARD_MAX_DURATION_S:
+            raise ValueError(f"max_duration_s must be within 1..{HARD_MAX_DURATION_S}")
+        for name in ("poll_interval_s", "http_timeout_s", "stale_threshold_s", "recovery_timeout_s", "watchdog_grace_s"):
+            if getattr(self, name) <= 0:
+                raise ValueError(f"{name} must be > 0")
+        if self.watchdog_grace_s > MAX_WATCHDOG_GRACE_S:
+            raise ValueError(f"watchdog_grace_s must be <= {MAX_WATCHDOG_GRACE_S}")
+        if min(self.observer_loss_max_consecutive, self.recovery_consecutive, self.precheck_fresh_consecutive) < 1:
+            raise ValueError("consecutive counters must be >= 1")
+
+
+@dataclass(frozen=True)
+class ExperimentSpec:
+    name: str
+    mechanism: str
+    allowed_targets: tuple[str, ...]
+    max_duration_s: int
+    description: str = ""
+    expected_symptoms: tuple[str, ...] = field(default_factory=tuple)
+    risks: tuple[str, ...] = field(default_factory=tuple)
+    blast_radius: tuple[str, ...] = field(default_factory=tuple)  # containers allowed to change state; default = targets
+    stop_timeout_s: int = 2                                        # docker_stop only: SIGTERM -> SIGKILL grace
+    max_error_rate: float | None = None                            # per-experiment override of the guardrail
+    expected_statuses: tuple[int, ...] = field(default_factory=tuple)  # HTTP codes that ARE the symptom (fault window only)
+    # response envelope for slow-failing dependencies (fault window only; precheck/recovery keep the global timeout)
+    fault_observer_timeout_s: float | None = None
+    fault_latency_p95_max_ms: float | None = None
+
+    def __post_init__(self) -> None:
+        if self.mechanism not in SUPPORTED_MECHANISMS:
+            raise ValueError(f"{self.name}: unsupported mechanism {self.mechanism!r}")
+        if not self.allowed_targets:
+            raise ValueError(f"{self.name}: allowed_targets must not be empty")
+        if not set(self.allowed_targets) <= set(self.effective_blast_radius):
+            raise ValueError(f"{self.name}: blast_radius must include every allowed target")
+        if not 0 <= self.stop_timeout_s <= 5:
+            raise ValueError(f"{self.name}: stop_timeout_s must be within 0..5")
+        if any(not 400 <= int(c) <= 599 for c in self.expected_statuses):
+            raise ValueError(f"{self.name}: expected_statuses must be HTTP error codes (400..599)")
+        if self.fault_observer_timeout_s is not None:
+            if not 0 < self.fault_observer_timeout_s <= MAX_FAULT_OBSERVER_TIMEOUT_S:
+                raise ValueError(f"{self.name}: fault_observer_timeout_s must be within (0, {MAX_FAULT_OBSERVER_TIMEOUT_S}]")
+            if self.max_duration_s + self.fault_observer_timeout_s > HARD_MAX_DURATION_S:
+                raise ValueError(f"{self.name}: max_duration_s + fault_observer_timeout_s must be <= {HARD_MAX_DURATION_S}")
+        if self.fault_latency_p95_max_ms is not None:
+            if not 0 < self.fault_latency_p95_max_ms <= MAX_FAULT_LATENCY_P95_MS:
+                raise ValueError(f"{self.name}: fault_latency_p95_max_ms must be within (0, {MAX_FAULT_LATENCY_P95_MS}]")
+            if self.fault_observer_timeout_s is None or self.fault_latency_p95_max_ms >= self.fault_observer_timeout_s * 1000:
+                raise ValueError(f"{self.name}: fault_latency_p95_max_ms needs a fault_observer_timeout_s above it")
+        if self.expected_statuses and self.max_error_rate not in (None, 0.0):
+            raise ValueError(f"{self.name}: a declared expected status requires zero tolerance for any other error")
+        if self.max_error_rate is not None and not 0.0 <= self.max_error_rate <= MAX_ERROR_RATE:
+            raise ValueError(f"{self.name}: max_error_rate must be within [0, {MAX_ERROR_RATE}]")
+
+    @property
+    def effective_blast_radius(self) -> tuple[str, ...]:
+        return self.blast_radius or self.allowed_targets
+
+
+def load_safety_config(root: Path = REPO_ROOT) -> SafetyConfig:
+    raw = json.loads((root / "config" / "safety.json").read_text(encoding="utf-8"))
+    profile = active_profile()
+    over = {k: v for k, v in _profile_file(root, profile, "safety.json").items() if not k.startswith("_")}
+    if set(over) - {"guardrails"}:
+        raise ValueError(f"profile {profile}: safety.json may only override 'guardrails', not {sorted(set(over) - {'guardrails'})}")
+    base_g = {f: getattr(Guardrails(), f) for f in Guardrails.__dataclass_fields__} | raw.get("guardrails", {})
+    for k, v in over.get("guardrails", {}).items():
+        if k not in PROFILE_GUARDRAIL_KEYS:
+            raise ValueError(f"profile {profile}: guardrails.{k} cannot be overridden by a profile")
+        _check_tightens(profile, "guardrails", k, base_g[k], v)
+    data_dir = Path(raw.pop("data_dir"))
+    guardrails = Guardrails(**{**raw.pop("guardrails", {}), **over.get("guardrails", {})})
+    return SafetyConfig(data_dir=data_dir if data_dir.is_absolute() else root / data_dir, guardrails=guardrails,
+                        profile=profile or "default", **raw)
+
+
+def load_experiment_catalog(root: Path = REPO_ROOT) -> dict[str, ExperimentSpec]:
+    raw = json.loads((root / "config" / "experiments.json").read_text(encoding="utf-8"))
+    profile = active_profile()
+    # Value that applies when an experiment declares no envelope: fault polls use the global http_timeout_s, and the
+    # latency threshold is never below the guardrail floor. A profile may only go below these.
+    safety = json.loads((root / "config" / "safety.json").read_text(encoding="utf-8")) if profile else {}
+    implicit = {"fault_observer_timeout_s": safety.get("http_timeout_s"),
+                "fault_latency_p95_max_ms": safety.get("guardrails", {}).get("latency_p95_floor_ms",
+                                                                             Guardrails().latency_p95_floor_ms)}
+    for name, over in _profile_file(root, profile, "experiments.json").items():
+        if name.startswith("_"):
+            continue
+        if name not in raw:
+            raise ValueError(f"profile {profile}: unknown experiment {name!r} (profiles cannot add experiments)")
+        bad = set(over) - PROFILE_SPEC_KEYS
+        if bad:
+            raise ValueError(f"profile {profile}: {name} may not override {sorted(bad)}")
+        base = raw[name]
+        if not set(over.get("expected_statuses", base.get("expected_statuses", []))) <= set(base.get("expected_statuses", [])):
+            raise ValueError(f"profile {profile}: {name}.expected_statuses may only be removed, not added")
+        for k in ("fault_observer_timeout_s", "fault_latency_p95_max_ms"):
+            if k in over:
+                _check_tightens(profile, name, k, base.get(k) if base.get(k) is not None else implicit[k], over[k])
+        if "max_duration_s" in over:  # may only shorten the fault window
+            _check_tightens(profile, name, "max_duration_s", base.get("max_duration_s"), over["max_duration_s"])
+        if "max_error_rate" in over:
+            _check_tightens(profile, name, "max_error_rate", base.get("max_error_rate", 0.0), over["max_error_rate"])
+        raw[name] = {**base, **over}
+    return {
+        name: ExperimentSpec(
+            name=name,
+            mechanism=spec["mechanism"],
+            allowed_targets=tuple(spec["allowed_targets"]),
+            max_duration_s=min(int(spec["max_duration_s"]), HARD_MAX_DURATION_S),
+            description=spec.get("description", ""),
+            expected_symptoms=tuple(spec.get("expected_symptoms", [])),
+            risks=tuple(spec.get("risks", [])),
+            blast_radius=tuple(spec.get("blast_radius", [])),
+            stop_timeout_s=int(spec.get("stop_timeout_s", 2)),
+            max_error_rate=spec.get("max_error_rate"),
+            expected_statuses=tuple(int(c) for c in spec.get("expected_statuses", [])),
+            fault_observer_timeout_s=spec.get("fault_observer_timeout_s"),
+            fault_latency_p95_max_ms=spec.get("fault_latency_p95_max_ms"),
+        )
+        for name, spec in raw.items()
+    }

@@ -1,0 +1,368 @@
+"""Operator CLI.  python -m resiliencepilot <command>
+
+  status                     safety controller state + target containers
+  observe [-n N]             poll the rFMS API and show freshness (read-only)
+  baseline [-n N] [-i S]     collect and save a baseline
+  run --duration S --approved-by NAME [--hypothesis TEXT] [--yes]
+                             run the telemetry_stall experiment (asks for approval unless --yes)
+  stop                       emergency stop (works from another terminal)
+  reset --operator NAME --note TEXT
+  runs | show RUN_ID [--json]   list runs / impact chart + timeline of one run
+  deps                       verified dependency map with a live shared-network check
+  show-baseline [FILE]       print a stored baseline (default: newest)
+  report [--run ID] [--out FILE]  read-only Day-1 explainer HTML (default: latest full-length COMPLETED run)
+  serve [--port N]           live dashboard + local API on http://127.0.0.1:N/ (localhost only)
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import signal
+import sys
+import time
+
+from .baseline import collect_baseline
+from .config import REPO_ROOT, load_experiment_catalog, load_safety_config
+from .docker_cli import DockerCLI
+from .evidence import EvidenceStore
+from .observation import utcnow
+from .orchestrator import ExperimentRunner
+from .safety import SafetyController, SafetyError
+from .sdv_adapter import RfmsObserver
+from .telemetry import FreshnessTracker
+from .views import C, age_bar, load_dependency_map, render_baseline, render_dependency_map, render_impact_chart
+
+_THRESHOLD = load_safety_config().stale_threshold_s
+
+
+def _fmt_obs(entry: dict) -> str:
+    o, a = entry["observation"], entry["assessment"]
+    color = {"FRESH": C["g"], "STALE": C["r"]}.get(a["freshness"], C["y"])
+    http = o["http_status"] if o["http_status"] is not None else "ERR"
+    created = (o["created_at"] or "-")[11:23]
+    received = (o["received_at"] or "-")[11:23]
+    flag = f"  {C['r']}{C['b']}<- HTTP 200 but STALE{C['x']}" if a["healthy_but_stale"] else ""
+    age = a["data_age_s"]
+    age_txt = "" if age is None else f"{age:5.2f}s"
+    return (f"  [{entry['phase']:>8} t={entry['t_s']:6.2f}s] HTTP {http}  created={created}  received={received}  "
+            f"{age_bar(age, _THRESHOLD)} {age_txt}  {color}{a['freshness']}{C['x']}{flag}")
+
+
+def _printer(kind: str, data: dict) -> None:
+    if kind == "observation":
+        print(_fmt_obs(data), flush=True)
+    elif kind == "event":
+        detail = "" if data["detail"] in (None, {}) else f"  {C['d']}{json.dumps(data['detail'], default=str)}{C['x']}"
+        print(f"{C['b']}» {data['event']}{C['x']}  [{data['state']}]{detail}", flush=True)
+
+
+def _load_conditions(docker, cfg, summary: dict, poll_interval_s: float) -> dict:
+    """What the system was doing while the baseline was taken. All values read live from Docker/config."""
+    fwd, csv = docker.env("fms-forwarder"), docker.env("csv-provider")
+    csv_file = REPO_ROOT / "Fleet Management" / "fleet-management" / "csv-provider" / "signalsFmsRecording.csv"
+    rows = None
+    if csv_file.exists():
+        with csv_file.open(encoding="utf-8") as f:
+            rows = sum(1 for _ in f) - 1  # minus header
+    mem = docker.mem_total_bytes()
+    return {
+        "forwarder_timer_interval": fwd.get("TIMER_INTERVAL"),
+        "csv_provider_infinite": csv.get("PROVIDER_INFINITE"),
+        "csv_rows": rows,
+        "vehicles": len(summary.get("vins", [])),
+        "observer_poll_interval_s": poll_interval_s,
+        "other_clients": "not measured (ResiliencePilot starts no load generator; Grafana polls only while a browser has it open)",
+        "docker_mem_total_gib": round(mem / 2**30, 2) if mem else None,
+        "stack_stats": docker.stats(cfg.compose_project),
+    }
+
+
+def build(on_event=None):
+    cfg = load_safety_config()
+    catalog = load_experiment_catalog()
+    docker = DockerCLI()
+    observer = RfmsObserver(cfg.rfms_base_url, cfg.http_timeout_s)
+    ctl = SafetyController(cfg, catalog, docker, observer=observer)
+    store = EvidenceStore(cfg.data_dir)
+    return cfg, catalog, docker, ctl, observer, store, ExperimentRunner(cfg, catalog, ctl, docker, observer, store, on_event)
+
+
+def _utf8_stdio() -> None:
+    """Windows pipes default to the ANSI codepage (cp1252), which cannot encode the bars/arrows we print."""
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure") and (stream.encoding or "").lower().replace("-", "") != "utf8":
+            try:
+                stream.reconfigure(encoding="utf-8", errors="replace")
+            except (ValueError, OSError):
+                pass
+
+
+def main(argv: list[str] | None = None) -> int:
+    _utf8_stdio()
+    p = argparse.ArgumentParser(prog="resiliencepilot")
+    sub = p.add_subparsers(dest="cmd", required=True)
+    sub.add_parser("status")
+    so = sub.add_parser("observe"); so.add_argument("-n", type=int, default=10); so.add_argument("-i", type=float, default=0.5)
+    sb = sub.add_parser("baseline"); sb.add_argument("-n", type=int, default=60); sb.add_argument("-i", type=float, default=0.5)
+    sr = sub.add_parser("run")
+    sr.add_argument("--type", default="telemetry_stall"); sr.add_argument("--target", default="fms-forwarder")
+    sr.add_argument("--duration", type=int, required=True); sr.add_argument("--approved-by", required=True)
+    sr.add_argument("--hypothesis"); sr.add_argument("--yes", action="store_true")
+    sub.add_parser("stop")
+    rs = sub.add_parser("reset"); rs.add_argument("--operator", required=True); rs.add_argument("--note", required=True)
+    sub.add_parser("runs")
+    sh = sub.add_parser("show"); sh.add_argument("run_id"); sh.add_argument("--json", action="store_true")
+    sub.add_parser("deps")
+    sc = sub.add_parser("score", help="read-only: Resilience Score of stored runs (docs/SCORING.md)")
+    sc.add_argument("--dir", help="run-record directory (default: the evidence store's runs/)")
+    sc.add_argument("--run", help="score only this run id"); sc.add_argument("--json", action="store_true")
+    sc.add_argument("--out", help="also write the JSON result here")
+    spl = sub.add_parser("plan", help="read-only: rank allowlisted experiments (rule-based)")
+    spl.add_argument("--dir", help="run-record directory (default: the evidence store's runs/)")
+    spl.add_argument("--json", action="store_true")
+    sfi = sub.add_parser("findings", help="read-only: write a findings report from stored runs")
+    sfi.add_argument("--dir", help="run-record directory (default: the evidence store's runs/)")
+    sfi.add_argument("--out", default="reports/generated/findings.md")
+    sad = sub.add_parser("advise", help="advisory AI planner + analyst (local Ollama; rule-based fallback)")
+    sad.add_argument("--dir", help="run-record directory (default: the evidence store's runs/)")
+    sad.add_argument("--offline", action="store_true", help="skip the AI; deterministic rule-based answers only")
+    sad.add_argument("--json", action="store_true"); sad.add_argument("--out", help="also write a Markdown report here")
+    sd = sub.add_parser("discover", help="read-only: derive the dependency graph from docker inspect, diff vs the map")
+    sd.add_argument("--json", action="store_true"); sd.add_argument("--out", help="also write the JSON result here")
+    sbs = sub.add_parser("show-baseline"); sbs.add_argument("file", nargs="?")
+    sv = sub.add_parser("serve"); sv.add_argument("--port", type=int, default=8765)
+    rp_ = sub.add_parser("report"); rp_.add_argument("--run"); rp_.add_argument("--out", default="reports/day1/explainer.html")
+    args = p.parse_args(argv)
+
+    if args.cmd == "serve":  # the app performs startup recovery itself, exactly like other commands
+        from .api import serve
+        serve(args.port)
+        return 0
+
+    if args.cmd == "report":  # read-only: handled before any Docker / safety-controller object is created
+        from pathlib import Path
+        from .explainer import build_report
+        out = Path(args.out)
+        out = out if out.is_absolute() else REPO_ROOT / out
+        print(f"wrote {build_report(REPO_ROOT, args.run, out)}")
+        return 0
+
+    if args.cmd in ("plan", "findings", "advise"):  # read-only: catalog + dependency map + stored runs; no Docker, no safety objects
+        from pathlib import Path
+        from .findings import render_markdown
+        from .planner import plan, render_text as render_plan
+        from .scoring import load_runs
+        d = Path(args.dir) if args.dir else load_safety_config().data_dir / "runs"
+        d = d if d.is_absolute() else REPO_ROOT / d
+        runs = load_runs(d) if d.is_dir() else []
+        catalog = json.loads((REPO_ROOT / "config" / "experiments.json").read_text(encoding="utf-8"))
+        dep_map = json.loads((REPO_ROOT / "config" / "dependency_map.json").read_text(encoding="utf-8"))
+        entries = plan(catalog, dep_map, runs, load_safety_config().max_duration_s)
+        if args.cmd == "plan":
+            print(json.dumps(entries, indent=2) if args.json else render_plan(entries))
+            return 0
+        if args.cmd == "advise":  # the AI sees only derived data; it can reorder candidates, never run them
+            from .ai import OllamaProvider, ai_analyse, ai_plan, load_ai_config, render_markdown as render_ai
+            from .findings import derive_findings
+            findings = derive_findings(runs)
+            ann_file = d / "annotations.json"
+            ann = json.loads(ann_file.read_text(encoding="utf-8")) if ann_file.is_file() else {}
+            for f in findings:
+                for h in f["runs"]:
+                    if h["run"] in ann and not h["run"].startswith("_"):
+                        h["note"] = ann[h["run"]]
+            provider = None if args.offline else OllamaProvider(load_ai_config(REPO_ROOT))
+            result = {"plan": ai_plan(entries, findings, provider), "analysis": ai_analyse(findings, provider)}
+            md = render_ai(result["plan"], result["analysis"])
+            if provider is not None:  # log every prompt, raw response, model and validation result
+                from datetime import datetime, timezone
+                from .evidence import EvidenceStore
+                stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+                log = EvidenceStore(load_safety_config().data_dir).save_ai_calls(stamp, {
+                    "logged_at": datetime.now(timezone.utc).isoformat(), "command": "rp advise",
+                    "runs_dir": d.name, "n_runs": len(runs), "calls": provider.calls})
+                result["ai_call_log"] = str(log)
+                md += f"\nModel calls (prompts, raw responses, validation): `{log.name}` in the evidence store's ai_calls/.\n"
+            print(json.dumps(result, indent=2) if args.json else md)
+            if args.out:
+                out = Path(args.out)
+                out = out if out.is_absolute() else REPO_ROOT / out
+                out.parent.mkdir(parents=True, exist_ok=True)
+                out.write_text(md, encoding="utf-8")
+                print(f"wrote {out}")
+            return 0
+        out = Path(args.out)
+        out = out if out.is_absolute() else REPO_ROOT / out
+        out.parent.mkdir(parents=True, exist_ok=True)
+        src = d.relative_to(REPO_ROOT).as_posix() if d.is_relative_to(REPO_ROOT) else d.name
+        ann_file = d / "annotations.json"
+        ann = json.loads(ann_file.read_text(encoding="utf-8")) if ann_file.is_file() else {}
+        plat_file = d / "platforms.json"
+        plat = json.loads(plat_file.read_text(encoding="utf-8")) if plat_file.is_file() else {}
+        out.write_text(render_markdown(runs, entries, src, {k: v for k, v in ann.items() if not k.startswith("_")},
+                                       {k: v for k, v in plat.items() if not k.startswith("_")}),
+                       encoding="utf-8")
+        print(f"wrote {out} ({len(runs)} run records)")
+        return 0
+
+    if args.cmd == "score":  # read-only: stored run records only; no Docker, no safety objects
+        from pathlib import Path
+        from .scoring import load_runs, render_text, score_run, summarise
+        d = Path(args.dir) if args.dir else load_safety_config().data_dir / "runs"
+        d = d if d.is_absolute() else REPO_ROOT / d
+        recs = [r for r in load_runs(d) if args.run in (None, r["run_id"])]
+        if not recs:
+            print(f"no run records{' for ' + args.run if args.run else ''} in {d}")
+            return 1
+        scores = [score_run(r) for r in recs]
+        src = d.relative_to(REPO_ROOT).as_posix() if d.is_relative_to(REPO_ROOT) else d.name  # never a local home path
+        result = {"formula": "docs/SCORING.md", "source": src, "runs": scores, "summary": summarise(scores)}
+        print(json.dumps(result, indent=2) if args.json else render_text(scores))
+        if args.out:
+            out = Path(args.out)
+            out = out if out.is_absolute() else REPO_ROOT / out
+            out.parent.mkdir(parents=True, exist_ok=True)
+            out.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
+            print(f"wrote {out}")
+        return 0
+
+    if args.cmd == "discover":  # read-only (docker ps/inspect + bind-mounted config files); no safety objects needed
+        from pathlib import Path
+        from .discover import load_map, render_text, run_discovery
+        result = run_discovery(DockerCLI(), load_safety_config().compose_project, load_map(REPO_ROOT))
+        print(json.dumps(result, indent=2) if args.json else render_text(result))
+        if args.out:
+            out = Path(args.out)
+            out = out if out.is_absolute() else REPO_ROOT / out
+            out.parent.mkdir(parents=True, exist_ok=True)
+            out.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
+            print(f"wrote {out}")
+        return 0
+
+    cfg, catalog, docker, ctl, observer, store, runner = build(_printer)
+    if args.cmd == "stop":  # first, before anything that reads possibly-corrupt state files
+        out = ctl.emergency_stop("cli")
+        print(f"emergency stop engaged ({out}); an active run will roll back at its next poll. Run `reset` afterwards.")
+        return 0
+
+    recovered = ctl.startup_recovery()
+    if recovered:
+        rec = store.load_run(recovered["marker"].get("run_id", ""))
+        if rec is not None and rec["state"] not in ("COMPLETED", "ABORTED", "LATCHED_UNSAFE"):
+            rec["timeline"].append({"at": utcnow().isoformat(), "event": "interrupted_process_recovered",
+                                    "detail": recovered["outcome"], "state": "LATCHED_UNSAFE"})
+            rec.update(state="LATCHED_UNSAFE", stop_reason="error")
+            rec["rollback"].update(attempted=True, by="startup_recovery", detail=recovered["outcome"])
+            store.save_run(rec)
+        print(f"{C['r']}{C['b']}Interrupted run found and cleaned up: {recovered}. Controller latched; review then `reset`.{C['x']}")
+
+    if args.cmd == "status":
+        print(json.dumps(ctl.status(), indent=2))
+        for t in sorted({t for s in catalog.values() for t in s.allowed_targets}):
+            print(f"target {t}: {docker.inspect(t)}")
+        return 0
+
+    if args.cmd == "observe":
+        tracker = FreshnessTracker(cfg.stale_threshold_s)
+        t0 = time.monotonic()
+        for i in range(args.n):
+            o = observer.observe()
+            a = tracker.update(o)
+            print(_fmt_obs({"phase": "observe", "t_s": round(time.monotonic() - t0, 2), "observation": o.to_dict(),
+                            "assessment": a.to_dict()}), flush=True)
+            if i < args.n - 1:
+                time.sleep(args.i)
+        return 0
+
+    if args.cmd == "baseline":
+        print(f"Collecting {args.n} samples every {args.i}s from {cfg.rfms_base_url} ...")
+        summary, observations = collect_baseline(observer, args.n, args.i, cfg.stale_threshold_s)
+        summary["load_conditions"] = _load_conditions(docker, cfg, summary, args.i)
+        name = utcnow().strftime("baseline-%Y%m%dT%H%M%SZ")
+        path = store.save_baseline(name, {"summary": summary, "observations": [o.to_dict() for o in observations]})
+        print(render_baseline(summary))
+        print(f"saved {path}")
+        return 0
+
+    if args.cmd == "run":
+        req = {"experiment_type": args.type, "target": args.target, "duration_s": args.duration,
+               "approved_by": args.approved_by}
+        if args.hypothesis:
+            req["hypothesis"] = args.hypothesis
+        try:
+            ctl.validate(req)
+        except SafetyError as exc:
+            print(f"{C['r']}REJECTED: {exc}{C['x']}")
+            return 2
+        spec = catalog[args.type]
+        print(f"{C['b']}Experiment plan{C['x']}\n  type: {args.type} ({spec.mechanism})\n  target: {args.target}\n"
+              f"  duration: {args.duration}s (watchdog at +{cfg.watchdog_grace_s}s)\n  hypothesis: {args.hypothesis}\n"
+              f"  expected symptoms: {list(spec.expected_symptoms)}\n  risks: {list(spec.risks)}\n"
+              f"  stop anytime: Ctrl+C here, `python -m resiliencepilot stop`, or scripts/kill-switch.sh")
+        if not args.yes and input(f"Approve as {args.approved_by}? [y/N] ").strip().lower() != "y":
+            print("not approved; nothing executed")
+            return 1
+        signal.signal(signal.SIGINT, lambda *_: ctl.signal_stop())  # lock-free, I/O-free
+        try:
+            rec = runner.run(req)
+        except SafetyError as exc:
+            print(f"{C['r']}REFUSED: {exc}{C['x']}")
+            return 2
+        imp, rb, rc = rec["impact"], rec["rollback"], rec["recovery"]
+        ok = rec["state"] == "COMPLETED"
+        print(f"\n{C['b']}Result: {(C['g'] if ok else C['r'])}{rec['state']}{C['x']}  stop_reason={rec['stop_reason']}")
+        print(f"  fault verified: {imp.get('fault_verified')}   stale detected: {imp.get('stale_detected')} "
+              f"(time to detection {'not detected' if imp.get('time_to_detection_s') is None else str(imp['time_to_detection_s']) + 's'})")
+        print(f"  during fault: HTTP-200 ratio {imp.get('http_ok_ratio_during_fault')}, max data age {imp.get('max_data_age_s')}s, "
+              f"{imp.get('healthy_but_stale_observations')} healthy-but-stale observations")
+        print(f"  rollback: verified={rb['verified']} by={rb['by']}   recovery: verified={rc['verified']} "
+              f"first fresh after {rc['time_to_first_fresh_s']}s, verified after {rc['time_to_verified_s']}s")
+        print(f"  evidence: {store.data_dir / 'runs' / (rec['run_id'] + '.json')}")
+        print()
+        print(render_impact_chart(rec))
+        return 0 if ok else 3
+
+    if args.cmd == "reset":
+        try:
+            print(json.dumps(ctl.reset(args.operator, args.note), indent=2))
+        except SafetyError as exc:
+            print(f"{C['r']}{exc}{C['x']}")
+            return 2
+        return 0
+
+    if args.cmd == "runs":
+        for r in store.list_runs():
+            rec = store.load_run(r)
+            print(f"{r}  {rec['state']:<15} stop={rec['stop_reason']}  recovery={rec['recovery']['verified']}")
+        return 0
+
+    if args.cmd == "show":
+        rec = store.load_run(args.run_id)
+        if rec is None:
+            print("not found")
+            return 1
+        print(json.dumps(rec, indent=2) if args.json else render_impact_chart(rec))
+        return 0
+
+    if args.cmd == "deps":
+        print(render_dependency_map(load_dependency_map(REPO_ROOT), docker))
+        return 0
+
+    if args.cmd == "show-baseline":
+        files = sorted((store.data_dir / "baselines").glob("*.json"))
+        path = args.file or (str(files[-1]) if files else None)
+        if path is None:
+            print("no baselines stored")
+            return 1
+        with open(path, encoding="utf-8") as f:
+            print(render_baseline(json.load(f)["summary"]))
+        from pathlib import Path
+        p = Path(path).resolve()  # print a repo-relative path: logs of this output get committed (no home paths)
+        shown = p.relative_to(REPO_ROOT).as_posix() if p.is_relative_to(REPO_ROOT) else p.name
+        print(f"{C['d']}source: {shown}{C['x']}")
+        return 0
+    return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())
