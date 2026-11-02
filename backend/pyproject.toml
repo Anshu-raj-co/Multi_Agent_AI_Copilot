@@ -22,7 +22,6 @@ mcop = "multiagent_copilot.__main__:main"
 
 [project.optional-dependencies]
 test = ["pytest>=8,<9"]
-slides = ["python-pptx>=1.0,<2"]   # scripts/make_ppt.py
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

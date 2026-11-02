@@ -2,7 +2,7 @@
 
 - **Milestone:** Day 2 complete + the lead's fix list (2026-10-11). **Code frozen** after this; docs only.
 - **`main`:** PRs #7 and #22–#30 merged (PR #29 approved by the lead). PR #8 open (older). **Code frozen for the demo.**
-- **Requirements:** `docs/REQUIREMENTS_TRACE.md`. **Plain-English guide:** `docs/PROJECT_A_TO_Z.md`.
+- **Plain-English guide:** `docs/PROJECT_A_TO_Z.md`.
 
 ## Verified (2026-10-11, macOS 27.0.1 Apple Silicon, Docker 29.7.2)
 - `pytest -q`: 317 passed, 11 skipped. `MCOP_LIVE=1 pytest -q`: 320 passed, 8 skipped (after PR #29 merge).
