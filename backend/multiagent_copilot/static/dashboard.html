@@ -61,6 +61,51 @@ svg text{fill:var(--fg);font-family:inherit}
 .trace .hd{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-weight:650}.trace .ln{font-size:13.5px;margin-top:3px}
 .badge{font-size:11px;font-weight:700;text-transform:uppercase;border-radius:6px;padding:1px 6px;border:1px solid var(--line);color:var(--muted)}
 .badge.llm{color:var(--accent);border-color:var(--accent)}.badge.human{color:var(--warn);border-color:var(--warn)}
+/* ---- System in 3D (CSS 3D, no libraries) ---- */
+#sys3d .s3hd{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;justify-content:space-between}
+#sys3d h2{margin:0}
+#sys3d .s3tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+#s3reset{padding:5px 12px;font-size:13px}
+.s3view{position:relative;height:500px;margin-top:10px;overflow:hidden;perspective:1400px;perspective-origin:50% 45%;
+  border-radius:10px;background:radial-gradient(ellipse at 50% 30%,var(--chipbg),var(--card) 70%);cursor:grab;touch-action:none;
+  user-select:none;-webkit-user-select:none}
+.s3view:active{cursor:grabbing}.s3view:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.s3stage{position:absolute;inset:0;transform-style:preserve-3d;transform:rotateX(var(--rx,40deg)) rotateZ(var(--rz,-8deg))}
+.s3layer{position:absolute;left:50%;top:50%;width:min(860px,94%);border:1px solid var(--line);border-radius:14px;
+  background:color-mix(in srgb,var(--card) 82%,transparent);transform-style:preserve-3d;box-shadow:0 10px 30px rgba(0,0,0,.08)}
+.s3layer[data-layer="blueprint"]{height:250px;transform:translate(-50%,-50%) translateY(40px) translateZ(-230px)}
+.s3layer[data-layer="agents"]{height:104px;transform:translate(-50%,-50%) translateY(-10px) translateZ(20px)}
+.s3layer[data-layer="safety"]{height:96px;transform:translate(-50%,-50%) translateY(-50px) translateZ(190px)}
+.s3lname{position:absolute;left:10px;right:10px;top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.s3lname b{color:var(--fg);font-weight:650}
+.s3n{position:absolute;transform:translate(-50%,-50%);padding:4px 7px;border-radius:8px;border:1.5px solid var(--line);
+  background:var(--card);color:var(--fg);font:600 11px/1.25 ui-monospace,Consolas,monospace;text-align:center;white-space:nowrap;
+  transition:border-color .3s,background-color .3s,box-shadow .3s;z-index:2}
+.s3n small{display:block;font:500 9.5px/1.2 system-ui,sans-serif;color:var(--muted)}
+.s3n.ok{border-color:var(--ok);box-shadow:0 0 0 3px color-mix(in srgb,var(--ok) 18%,transparent)}
+.s3n.warn{border-color:var(--warn);box-shadow:0 0 0 3px color-mix(in srgb,var(--warn) 22%,transparent)}
+.s3n.bad{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 14%,var(--card));box-shadow:0 0 0 4px color-mix(in srgb,var(--bad) 25%,transparent)}
+.s3n.cur{border-color:var(--accent);box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 28%,transparent)}
+.s3n.off{opacity:.55}
+.s3tag{display:none;position:absolute;left:50%;top:100%;margin-top:4px;transform:translateX(-50%);white-space:nowrap;
+  font:700 9.5px/1.3 system-ui,sans-serif;color:#fff;background:var(--bad);border-radius:5px;padding:1px 6px}
+.s3n.http200stale .s3tag{display:block}
+.s3e{position:absolute;height:2px;background:var(--line);transform-origin:0 50%;z-index:0}
+.s3e.path{background:color-mix(in srgb,var(--ok) 55%,var(--line))}
+.s3e.dash{background:repeating-linear-gradient(90deg,var(--line) 0 5px,transparent 5px 9px)}
+.s3view.down .s3e.path{background:var(--line)}
+.s3p{position:absolute;width:8px;height:8px;margin:-4px 0 0 -4px;border-radius:50%;background:var(--ok);z-index:1;
+  box-shadow:0 0 6px var(--ok)}
+.s3p.stall{background:var(--bad);box-shadow:0 0 6px var(--bad)}
+.s3view.down .s3p{display:none}
+.s3nolive{display:none;position:absolute;left:50%;top:14px;transform:translateX(-50%);z-index:5;font-weight:700;
+  color:var(--bad);background:var(--card);border:1.5px solid var(--bad);border-radius:999px;padding:3px 14px}
+.s3view.down .s3nolive{display:block}
+.s3legend{display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:8px;font-size:12.5px;color:var(--muted)}
+.s3legend i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;vertical-align:-1px}
+@media (max-width:640px){.s3view{height:540px}.s3layer{width:86%}.s3n{font-size:9.5px;padding:3px 5px}.s3n small{font-size:8.5px}
+  .s3layer[data-layer="blueprint"]{height:230px}}
+@media (prefers-reduced-motion:reduce){.s3n{transition:none}.s3p{box-shadow:none}}
 </style>
 </head>
 <body>
@@ -69,6 +114,29 @@ svg text{fill:var(--fg);font-family:inherit}
   <h1>Multi-Agent Copilot · live dashboard</h1>
   <div>Controller <span class="chip" id="ctl">…</span> &nbsp;Phase <span class="chip" id="phase">…</span></div>
 </header>
+<section class="card" id="sys3d" aria-labelledby="s3title">
+  <div class="s3hd">
+    <h2 class="k" id="s3title">System in 3D</h2>
+    <div class="s3tools"><span class="chip" id="s3state">connecting…</span><button type="button" id="s3reset">Reset view</button></div>
+  </div>
+  <div class="s3view" id="s3view" tabindex="0" role="group" aria-roledescription="3D view"
+       aria-label="Blueprint containers, agent pipeline and safety layer. Drag or use the arrow keys to rotate.">
+    <div class="s3nolive">no live data</div>
+    <div class="s3stage" id="s3stage">
+      <div class="s3layer" data-layer="blueprint" id="s3bp"><div class="s3lname"><b>Blueprint</b> · 8 containers (Compose project multiagent-copilot)</div></div>
+      <div class="s3layer" data-layer="agents" id="s3ag"><div class="s3lname"><b>Agent pipeline</b> · <span id="s3sess">latest session: not recorded</span></div></div>
+      <div class="s3layer" data-layer="safety" id="s3sf"><div class="s3lname"><b>Safety layer</b> · deterministic, no LLM</div></div>
+    </div>
+  </div>
+  <div class="s3legend" id="s3legend"><span><i style="background:var(--ok)"></i>telemetry fresh</span>
+    <span><i style="background:var(--warn)"></i>fault injected / rolling back</span><span><i style="background:var(--bad)"></i>stale or stopped</span>
+    <span><i style="background:var(--accent)"></i>active agent stage / guard</span><span id="s3note"></span></div>
+</section>
+<script type="application/json" id="s3data">{"source":"config/dependency_map.json",
+"nodes":["csv-provider","databroker","fms-forwarder","fms-zenoh-router","fms-consumer","influxDB","fms-server","grafana"],
+"links":[["csv-provider","databroker"],["fms-forwarder","databroker"],["fms-forwarder","fms-zenoh-router"],["fms-zenoh-router","fms-consumer"],
+["fms-consumer","influxDB"],["fms-server","influxDB"],["grafana","influxDB"]],
+"telemetry_path":["csv-provider","databroker","fms-forwarder","fms-zenoh-router","fms-consumer","influxDB","fms-server"]}</script>
 <div class="banner" id="banner"></div>
 
 <div class="row" style="margin-top:14px">
@@ -328,6 +396,123 @@ loadTeam(); setInterval(loadTeam,10000);
 loadInsights();
 loadProposals();
 poll();
+})();
+</script>
+<script id="s3js">
+// ---- System in 3D: reads only /api/status and /api/team/sessions/latest; shows nothing it did not observe ----
+(function(){
+"use strict";
+function $(id){return document.getElementById(id);}
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
+var D=JSON.parse($("s3data").textContent), PATH=D.telemetry_path;
+var POS={"csv-provider":[11,32],"databroker":[37,32],"fms-forwarder":[63,32],"fms-zenoh-router":[88,32],
+  "fms-server":[13,66],"influxDB":[50,66],"fms-consumer":[88,66],"grafana":[50,90]};
+var AGENTS=[["monitor","Monitor"],["planner","Planner"],["gate","Human gate"],["executor","Safety Executor"],["analyst","Analyst"]];
+var GUARDS=[["allowlist","Allowlist"],["watchdog","Watchdog"],["rollback","Rollback"],["kill","Kill switch"]];
+var RM=!!(window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+var view=$("s3view"), stage=$("s3stage"), N={}, EDGES=[], PK=[];
+
+function node(layer,key,label,x,y){
+  var n=document.createElement("div"); n.className="s3n off"; n.style.left=x+"%"; n.style.top=y+"%";
+  n.innerHTML=esc(label)+"<small></small>"+(key==="fms-server"?'<span class="s3tag">HTTP 200 but STALE</span>':"");
+  layer.appendChild(n); N[key]=n; return n;}
+function edge(layer,a,b,cls){var e=document.createElement("div"); e.className="s3e "+(cls||""); layer.appendChild(e); EDGES.push([e,layer,a,b]);}
+function layout(){EDGES.forEach(function(x){var W=x[1].offsetWidth,H=x[1].offsetHeight,ax=x[2][0]/100*W,ay=x[2][1]/100*H,
+  bx=x[3][0]/100*W,by=x[3][1]/100*H; x[0].style.left=ax+"px"; x[0].style.top=(ay-1)+"px";
+  x[0].style.width=Math.hypot(bx-ax,by-ay)+"px"; x[0].style.transform="rotate("+Math.atan2(by-ay,bx-ax)+"rad)";});}
+function sub(key,t){N[key].querySelector("small").textContent=t||"";}
+
+// blueprint layer: the 8 containers and their real links from config/dependency_map.json
+var bp=$("s3bp");
+D.links.forEach(function(l){var ia=PATH.indexOf(l[0]), ib=PATH.indexOf(l[1]);
+  edge(bp,POS[l[0]],POS[l[1]],ia>=0&&ib>=0&&Math.abs(ia-ib)===1?"path":"dash");});
+D.nodes.forEach(function(n){node(bp,n,n,POS[n][0],POS[n][1]);});
+for(var h=0;h<PATH.length-1;h++){[0,0.5].forEach(function(t0){var p=document.createElement("i"); p.className="s3p"; p.style.display="none";
+  bp.appendChild(p); PK.push({el:p,hop:h,t:t0+0.25,flow:false});});}
+// agent pipeline layer
+var ag=$("s3ag");
+AGENTS.forEach(function(a,i){if(i)edge(ag,[10+(i-1)*20,60],[10+i*20,60],""); node(ag,"ag-"+a[0],a[1],10+i*20,60);});
+// safety layer
+var sf=$("s3sf");
+GUARDS.forEach(function(g,i){node(sf,"sf-"+g[0],g[1],14+i*24,60);});
+
+function place(p){var a=POS[PATH[p.hop]], b=POS[PATH[p.hop+1]];
+  p.el.style.left=(a[0]+(b[0]-a[0])*p.t)+"%"; p.el.style.top=(a[1]+(b[1]-a[1])*p.t)+"%";}
+var running=false, last=0;
+function frame(ts){if(!running)return; var dt=last?Math.min((ts-last)/1000,0.1):0; last=ts;
+  PK.forEach(function(p){if(p.flow)p.t=(p.t+dt/1.4)%1; place(p);}); requestAnimationFrame(frame);}
+function motion(){var any=PK.some(function(p){return p.flow;}), on=any&&!RM&&!document.hidden&&!view.classList.contains("down");
+  if(on&&!running){running=true; last=0; requestAnimationFrame(frame);} if(!on){running=false; PK.forEach(place);}}
+document.addEventListener("visibilitychange",motion);
+
+function chip(t,c){var e=$("s3state"); e.textContent=t; e.className="chip "+(c||"");}
+function goDown(){view.classList.add("down"); chip("no live data","bad"); $("s3note").textContent="API unreachable: nothing is animated.";
+  Object.keys(N).forEach(function(k){N[k].className="s3n off"; sub(k,"");}); PK.forEach(function(p){p.flow=false;}); motion();}
+
+function applyStatus(s){
+  view.classList.remove("down");
+  var L=s.latest||{}, phase=s.phase, tgt=s.fault_target||null, busy=s.state==="BUSY", noObs=L.freshness===undefined;
+  var faulted=phase==="fault_active"||phase==="stale_detected"||(busy&&!!tgt);
+  var rolling=phase==="rolling_back"||phase==="verifying_recovery", stale=L.stale===true, ti=tgt?PATH.indexOf(tgt):-1;
+  D.nodes.forEach(function(n){var c="s3n", t="", pi=PATH.indexOf(n);
+    if(noObs)c+=" off";
+    else if(n===tgt&&(faulted||rolling)){c+=stale?" bad":" warn"; t=rolling?"rolling back":"fault target";}
+    else if(pi>=0){var hit=stale&&(ti<0||pi>ti); c+=hit?" warn":" ok"; if(hit)t="no new data";}
+    if(n==="fms-server"&&L.healthy_but_stale===true)c+=" http200stale";
+    N[n].className=c; sub(n,t);});
+  var from=-1;
+  if(noObs)from=0; else if((faulted||(rolling&&stale))&&ti>=0)from=Math.max(0,ti-1); else if(stale)from=0;
+  PK.forEach(function(p){p.flow=from<0||p.hop<from; p.el.className="s3p"+(p.flow?"":" stall"); p.el.style.display=noObs?"none":"";});
+  motion();
+  var g={allowlist:["",tgt?"target "+tgt:"exact names + label"],watchdog:[busy?" cur":"",busy?"armed":"idle"],
+    rollback:phase==="latched"?[" bad","LATCHED_UNSAFE"]:rolling?[" warn",phase.replace(/_/g," ")]:phase==="recovered"?[" ok","recovery verified"]:["","ready"],
+    kill:s.emergency_stop_engaged?[" bad","ENGAGED"]:["","ready"]};
+  if(tgt)g.allowlist[0]=" cur";
+  GUARDS.forEach(function(x){N["sf-"+x[0]].className="s3n"+g[x[0]][0]; sub("sf-"+x[0],g[x[0]][1]);});
+  if(phase==="latched")chip("LATCHED_UNSAFE","bad");
+  else if(s.emergency_stop_engaged)chip("kill switch engaged","bad");
+  else if(faulted)chip(stale?"fault on "+(tgt||"target not recorded")+" · data STALE":"fault injected on "+(tgt||"target not recorded"),stale?"bad":"warn");
+  else if(rolling)chip(phase.replace(/_/g," "),"warn");
+  else if(noObs)chip("waiting for the first observation","warn");
+  else if(stale)chip("data STALE (no fault active)","bad");
+  else if(busy)chip("precheck","warn");
+  else if(phase==="recovered")chip("recovered","ok");
+  else chip("normal","ok");
+  $("s3note").textContent=L.healthy_but_stale===true?"fms-server answers HTTP 200 while the data is stale.":"";
+}
+function applyTeam(d){
+  var s=d&&d.session, lastKey=null, by={};
+  AGENTS.forEach(function(a){N["ag-"+a[0]].className="s3n"; sub("ag-"+a[0],"");});
+  if(!s){$("s3sess").textContent="latest session: not recorded"; return;}
+  s.steps.forEach(function(x){by[x.agent]=x;});
+  AGENTS.forEach(function(a){var c="s3n", t="not reached";
+    if(a[0]==="gate"){if(s.approval){c+=" ok"; t="approved by "+s.approval.approved_by; lastKey=a[0];}}
+    else if(by[a[0]]){var st=by[a[0]].status; c+=({ok:" ok",completed:" ok",fallback:" warn",aborted:" warn",refused:" bad",error:" bad"})[st]||""; t=st; lastKey=a[0];}
+    N["ag-"+a[0]].className=c; sub("ag-"+a[0],t);});
+  if(lastKey)N["ag-"+lastKey].classList.add("cur");
+  $("s3sess").textContent="latest session "+s.session_id+" · "+s.outcome+(d.source!==d.requested?" (committed evidence)":"");
+}
+function teamDown(){AGENTS.forEach(function(a){N["ag-"+a[0]].className="s3n off"; sub("ag-"+a[0],"");});
+  $("s3sess").textContent="latest session: not recorded (no live data)";}
+
+function pollStatus(){fetch("/api/status",{cache:"no-store"}).then(function(r){if(!r.ok)throw new Error("HTTP "+r.status); return r.json();})
+  .then(applyStatus).catch(goDown).finally(function(){setTimeout(pollStatus,1000);});}
+function pollTeam(){fetch("/api/team/sessions/latest?source=local",{cache:"no-store"}).then(function(r){if(!r.ok)throw new Error("HTTP "+r.status); return r.json();})
+  .then(applyTeam).catch(teamDown).finally(function(){setTimeout(pollTeam,10000);});}
+
+// drag (or arrow keys) to rotate; Reset view restores the default angle
+var NARROW=view.offsetWidth<640, RX0=NARROW?36:40, RZ0=NARROW?-2:-8, rx=RX0, rz=RZ0, drag=null;
+function rot(){stage.style.setProperty("--rx",rx+"deg"); stage.style.setProperty("--rz",rz+"deg");}
+function clampX(v){return Math.max(10,Math.min(80,v));}
+view.addEventListener("pointerdown",function(e){drag=[e.clientX,e.clientY,rx,rz]; try{view.setPointerCapture(e.pointerId);}catch(x){}});
+view.addEventListener("pointermove",function(e){if(!drag)return; rz=drag[3]+(e.clientX-drag[0])*0.4; rx=clampX(drag[2]-(e.clientY-drag[1])*0.3); rot();});
+["pointerup","pointercancel","lostpointercapture"].forEach(function(ev){view.addEventListener(ev,function(){drag=null;});});
+view.addEventListener("keydown",function(e){var k={ArrowLeft:[0,-6],ArrowRight:[0,6],ArrowUp:[4,0],ArrowDown:[-4,0]}[e.key];
+  if(!k)return; e.preventDefault(); rx=clampX(rx+k[0]); rz+=k[1]; rot();});
+$("s3reset").onclick=function(){rx=RX0; rz=RZ0; rot();};
+function stagger(){var narrow=ag.offsetWidth<640; AGENTS.forEach(function(a,i){N["ag-"+a[0]].style.top=(narrow?(i%2?74:44):60)+"%";});}
+window.addEventListener("resize",function(){layout(); stagger();});
+rot(); layout(); stagger(); PK.forEach(place); pollStatus(); pollTeam();
 })();
 </script>
 </body>

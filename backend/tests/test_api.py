@@ -331,3 +331,21 @@ def test_committed_team_session_evidence_is_served(env):
     d = env["a"].get("/api/team/sessions?source=committed").json()
     assert d["source"] == "committed" and any(s["outcome"] for s in d["sessions"])
 
+
+# ---- display-only fault target for the System in 3D view ----
+def test_status_reports_the_fault_target_only_while_a_run_is_active(env):
+    assert env["a"].get("/api/status").json()["fault_target"] is None
+    assert env["a"].post("/api/run", json=PICK).status_code == 202
+    wait_paused(env)
+    assert env["a"].get("/api/status").json()["fault_target"] == "fms-forwarder"
+    wait_idle(env)
+    assert env["a"].get("/api/status").json()["fault_target"] is None
+
+
+def test_status_reports_the_fault_target_of_a_run_in_another_process(env):
+    env["ctl"].mark_fault_active("20261102T000000Z-abcdef", "fms-forwarder", "docker_pause")
+    try:
+        assert env["a"].get("/api/status").json()["fault_target"] == "fms-forwarder"
+    finally:
+        env["ctl"].clear_fault_marker()
+    assert env["a"].get("/api/status").json()["fault_target"] is None

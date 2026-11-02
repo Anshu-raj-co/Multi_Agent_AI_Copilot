@@ -75,17 +75,20 @@ class LiveState:
         self.threshold = threshold
         self.latest: dict | None = None
         self.recent: deque = deque(maxlen=history)
-        self.run: dict | None = None  # {"run_id", "state", "events": [{"event","at","t_s"}]}
+        self.run: dict | None = None  # {"run_id", "state", "target", "events": [{"event","at","t_s"}]}
 
     def on_event(self, kind: str, data: dict) -> None:
         if kind not in ("event", "finished"):
             return
         with self.lock:
             if self.run is None or self.run["run_id"] != data["run_id"]:
-                self.run = {"run_id": data["run_id"], "state": None, "events": []}
+                self.run = {"run_id": data["run_id"], "state": None, "target": None, "events": []}
             self.run["state"] = data.get("state", self.run["state"])
             if kind == "event":
                 self.run["events"].append({"event": data["event"], "at": utcnow().isoformat()})
+                detail = data.get("detail")
+                if data["event"] == "injecting" and isinstance(detail, dict):  # display only (System in 3D view)
+                    self.run["target"] = detail.get("target")
 
     def record(self, obs, assessment) -> None:
         point = {
@@ -216,10 +219,19 @@ def create_app(cfg: SafetyConfig, catalog: dict[str, ExperimentSpec], ctl: Safet
             latest, recent = live.latest, list(live.recent)
             run = None if live.run is None else {**live.run, "events": list(live.run["events"])}
         active = st["state"] == "BUSY"
+        # display only: the container under fault. In-process runs report it from the run's own events; a run started by
+        # another process (CLI, mcop team run) is visible through the controller's fault marker.
+        marker = st.get("fault_marker")
+        if isinstance(marker, dict) and isinstance(marker.get("target"), str):
+            fault_target = marker["target"]
+        elif run and st["active_run"] == run["run_id"]:
+            fault_target = run.get("target")
+        else:
+            fault_target = None
         return {
             "state": st["state"], "phase": _phase(st, run, active), "blocked": _blocked(),
             "latched_reason": st["latched_reason"], "emergency_stop_engaged": st["emergency_stop_engaged"],
-            "active_run": st["active_run"], "stale_threshold_s": cfg.stale_threshold_s,
+            "active_run": st["active_run"], "fault_target": fault_target, "stale_threshold_s": cfg.stale_threshold_s,
             "poll_interval_s": cfg.poll_interval_s, "latest": latest, "recent": recent, "current_run": run,
             "last_run": _run_summary(_latest_finished_record()),
             "startup_recovery": getattr(app.state, "recovered", None),
