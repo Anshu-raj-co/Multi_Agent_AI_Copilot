@@ -133,11 +133,15 @@ Monitor -> Planner -> HUMAN GATE -> Safety Executor -> Analyst
 ```
 
 Sessions are written to `backend/data/team_sessions/<session_id>.json` (contract `contracts/team_session.schema.json`).
-One real session is committed: `reports/team-sessions/20261102T151952Z-8b5eaa.json` (readable: `.txt` beside it),
-run `20261102T151955Z-56a912`, `--no-ai` because Ollama was not running: Monitor 6/6 FRESH, Planner rule-based
-fallback, approved by Anshu, `telemetry_stall` 25 s COMPLETED (stale detected after 5.332 s with HTTP 200 on every
-fault poll, recovery verified 2.67 s after rollback), Analyst score 46.1. The dashboard shows it in the **Agent trace**
-panel. Design: [docs/MULTI_AGENT_DESIGN.md](docs/MULTI_AGENT_DESIGN.md).
+Two real sessions are committed in `reports/team-sessions/` (each with a readable `.txt` and its run record), both
+`telemetry_stall` 25 s, approved by Anshu, COMPLETED with HTTP 200 on every fault poll while the data was stale:
+- `20261102T151952Z-8b5eaa` with `--no-ai` (Ollama was not running): stale detected after 5.332 s, recovery verified
+  2.67 s after rollback, Analyst score 46.1.
+- `20261102T162147Z-d11fad` with `--ai` (`qwen2.5:7b`; model calls in `.ai_calls.json`): the Planner's LLM answer was
+  accepted (180.7 s; same order as the rules); the Analyst's LLM call timed out at 240 s and fell back to rule-based
+  text; stale detected after 4.844 s, recovery verified 2.965 s after rollback, score 44.9. Session 455.0 s.
+
+The dashboard shows the latest session in the **Agent trace** panel. Design: [docs/MULTI_AGENT_DESIGN.md](docs/MULTI_AGENT_DESIGN.md).
 
 ## Safety model
 

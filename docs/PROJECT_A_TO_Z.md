@@ -278,7 +278,7 @@ Only figures verified in run records, logs or test output from this repository:
 | Figure | Value | Source |
 |---|---|---|
 | Committed run records (hackathon) | 37: Day 1 12, Day 2 21, guardrail demo 4 (`telemetry_stall` 16, `service_crash` 8, `dependency_failure` 13) | `reports/day1/`, `reports/day2/`, `reports/guardrail-demo/` |
-| Committed team sessions | 1 (completed), with its run record | `reports/team-sessions/` |
+| Committed team sessions | 2 (both completed `telemetry_stall`): `20261102T151952Z-8b5eaa` with `--no-ai`; `20261102T162147Z-d11fad` with `--ai` (Planner LLM answer accepted, Analyst LLM call timed out at 240 s and fell back) | `reports/team-sessions/` |
 | Resilience Score medians, full-window Day-2 runs | `telemetry_stall` 62.2 (n=2, 60.9–63.5), `service_crash` 65.1 (n=5, 61.9–65.3), `dependency_failure` 61.6 (n=3, 57.5–63.2) | `mcop score --dir reports/day2` |
 | Day-1 `telemetry_stall` median | 55.4 (n=6, 54.2–56.9) | `mcop score --dir reports/day1` |
 | AI analyst evidence check | 1 of 7 explanations passed, in each of the two recorded real calls (`qwen2.5:7b`) | `reports/day2/ai_advice_qwen2.5-7b*.md`, `reports/day2/ai_calls/20261010T233726Z.json` |
@@ -297,7 +297,8 @@ that were HTTP 200 but stale; parts that were not measured are left out (`docs/S
 - It is **not production-ready** and **not safety-certified**; it runs only against a local sandbox.
 - The local 7B model adds little: in the recorded real calls only 1 of 7 analyst explanations passed the evidence
   check. The deterministic layer carries the analysis.
-- The committed team session ran without the LLM; a team session with `--ai` on the live stack is **UNVERIFIED**.
+- In the one committed team session with `--ai`, the Analyst's LLM call timed out at 240 s and fell back to rules; a
+  team session in which the Analyst's AI answer was graded by the grounding check is **UNVERIFIED**.
 - Faults are container pause/stop only; no network degradation. Small samples (n = 2–8 per experiment, hackathon runs).
 - One simulated vehicle, one machine. The watchdog runs inside the backend process; a hard-killed backend leaves the
   fault until the kill switch or the next start-up undoes it.

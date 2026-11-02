@@ -101,8 +101,10 @@ The committed example `reports/team-sessions/20261102T151952Z-8b5eaa.json` (read
 - Agents are coordinated by our own pipeline, not an agent framework; the AI adds little beyond the deterministic layer.
 - In the recorded real calls only 1 of 7 analyst explanations passed the evidence check
   (`reports/day2/ai_calls/20261010T233726Z.json`).
-- The committed team session ran with `--no-ai`; no team session with the LLM consulted has been recorded (UNVERIFIED
-  with `--ai` on the live stack; the AI paths are covered by unit tests with a mocked Ollama).
+- One committed session consulted the LLM (`20261102T162147Z-d11fad`): the Planner's answer was accepted after 180.7 s,
+  and the Analyst's call timed out at the configured 240 s and fell back to rule-based text. On this laptop the 7B model
+  makes an AI session take minutes (455.0 s in total); an Analyst answer that passed or failed the grounding check in a
+  team session has not been recorded yet (the grounding path is covered by unit tests with a mocked Ollama).
 - A session is written when it ends. If the process is killed mid-run, the run record and the safety controller's own
   recovery still apply, but that session file is not written.
 - The gate's own failure (e.g. an exception while prompting) ends the session with `outcome: error` and no step, because
