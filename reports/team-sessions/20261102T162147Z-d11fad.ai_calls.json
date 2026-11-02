@@ -1,0 +1,133 @@
+{
+  "logged_at": "2026-11-02T16:29:22.959101+00:00",
+  "command": "mcop team run",
+  "session_id": "20261102T162147Z-d11fad",
+  "calls": [
+    {
+      "provider": "ollama:qwen2.5:7b",
+      "model": "qwen2.5:7b",
+      "base_url": "http://127.0.0.1:11434",
+      "options": {
+        "temperature": 0,
+        "seed": 42
+      },
+      "system_prompt": "You are an advisory reliability engineer for a local test sandbox of the Eclipse SDV Fleet Management Blueprint. You may ONLY reorder the candidate experiments given to you, by id. You cannot add, remove or modify experiments, durations or commands, and a human approves every run. Put the most informative and riskiest experiment first. Give a short technical rationale per candidate that cites the evidence numbers provided. Answer with JSON only.",
+      "user_prompt": "{\n \"candidates\": [\n  {\n   \"id\": \"dependency_failure@influxDB\",\n   \"mechanism\": \"docker_stop\",\n   \"rule_based_rank\": 1,\n   \"priority\": 0.697,\n   \"evidence\": {\n    \"runs\": 7,\n    \"full_window_runs\": 1,\n    \"latched\": 2,\n    \"unresolved\": 6,\n    \"untested_hypotheses\": 3,\n    \"dependents\": [\n     \"fms-consumer\",\n     \"fms-server\",\n     \"grafana\"\n    ]\n   },\n   \"rationale\": [\n    \"1 full-window run(s) so far (information 0.50)\",\n    \"3/5 expected symptoms still labelled HYPOTHESIS in config/experiments.json\",\n    \"6/7 past runs unresolved (latched or cut short)\",\n    \"3 neighbouring container(s) in the dependency map: fms-consumer, fms-server, grafana\",\n    \"latch rate 2/7\",\n    \"mechanism docker_stop (severity 1.0)\",\n    \"score so far: median 61.6 (range 61.6-61.6)\"\n   ]\n  },\n  {\n   \"id\": \"service_crash@fms-forwarder\",\n   \"mechanism\": \"docker_stop\",\n   \"rule_based_rank\": 2,\n   \"priority\": 0.522,\n   \"evidence\": {\n    \"runs\": 8,\n    \"full_window_runs\": 5,\n    \"latched\": 3,\n    \"unresolved\": 3,\n    \"untested_hypotheses\": 3,\n    \"dependents\": [\n     \"databroker\",\n     \"fms-zenoh-router\"\n    ]\n   },\n   \"rationale\": [\n    \"5 full-window run(s) so far (information 0.17)\",\n    \"3/3 expected symptoms still labelled HYPOTHESIS in config/experiments.json\",\n    \"3/8 past runs unresolved (latched or cut short)\",\n    \"2 neighbouring container(s) in the dependency map: databroker, fms-zenoh-router\",\n    \"latch rate 3/8\",\n    \"mechanism docker_stop (severity 0.7)\",\n    \"score so far: median 65.1 (range 61.9-65.3)\"\n   ]\n  },\n  {\n   \"id\": \"telemetry_stall@fms-forwarder\",\n   \"mechanism\": \"docker_pause\",\n   \"rule_based_rank\": 3,\n   \"priority\": 0.189,\n   \"evidence\": {\n    \"runs\": 33,\n    \"full_window_runs\": 17,\n    \"latched\": 2,\n    \"unresolved\": 2,\n    \"untested_hypotheses\": 0,\n    \"dependents\": [\n     \"databroker\",\n     \"fms-zenoh-router\"\n    ]\n   },\n   \"rationale\": [\n    \"17 full-window run(s) so far (information 0.06)\",\n    \"0/3 expected symptoms still labelled HYPOTHESIS in config/experiments.json\",\n    \"2/33 past runs unresolved (latched or cut short)\",\n    \"2 neighbouring container(s) in the dependency map: databroker, fms-zenoh-router\",\n    \"latch rate 2/33\",\n    \"mechanism docker_pause (severity 0.3)\",\n    \"score so far: median 55.4 (range 46.1-63.5)\"\n   ]\n  }\n ],\n \"findings\": [\n  {\n   \"rule\": \"not_recovered\",\n   \"level\": \"high\",\n   \"experiment\": \"dependency_failure\",\n   \"runs\": 1\n  },\n  {\n   \"rule\": \"silent_after_rollback\",\n   \"level\": \"high\",\n   \"experiment\": \"dependency_failure\",\n   \"runs\": 1\n  },\n  {\n   \"rule\": \"silent_during_fault\",\n   \"level\": \"high\",\n   \"experiment\": \"service_crash\",\n   \"runs\": 5\n  },\n  {\n   \"rule\": \"silent_during_fault\",\n   \"level\": \"high\",\n   \"experiment\": \"telemetry_stall\",\n   \"runs\": 17\n  },\n  {\n   \"rule\": \"slow_recovery\",\n   \"level\": \"medium\",\n   \"experiment\": \"dependency_failure\",\n   \"runs\": 1\n  },\n  {\n   \"rule\": \"data_loss\",\n   \"level\": \"medium\",\n   \"experiment\": \"dependency_failure\",\n   \"runs\": 5\n  },\n  {\n   \"rule\": \"data_loss\",\n   \"level\": \"medium\",\n   \"experiment\": \"telemetry_stall\",\n   \"runs\": 3\n  },\n  {\n   \"rule\": \"blast_radius\",\n   \"level\": \"medium\",\n   \"experiment\": \"service_crash\",\n   \"runs\": 1\n  }\n ],\n \"facts\": [\n  \"[verified] fms-server answers HTTP 200 with the last stored status while the forwarder is paused or stopped; receivedDateTime is the request time, so only createdDateTime shows the data is stale\",\n  \"[verified] fms-forwarder ignores SIGTERM: docker stop always waits the 2 s grace and kills it (exit 137)\",\n  \"[verified] with InfluxDB down, fms-server requests first block ~4 s, then fail fast with HTTP 500\",\n  \"[verified] after InfluxDB is back, recovery takes 20-27 s; in some runs the API stays HTTP 200 with frozen createdDateTime (silent), in others it answers HTTP 500 (visible)\",\n  \"[verified] fms-consumer drops statuses it cannot write ('failed to write data to influx'); no buffering or backfill\",\n  \"[verified] createdDateTime advances every 1.0 s at the API although the forwarder publishes every 0.5 s\",\n  \"[hypothesis] the isahc/libcurl HTTP client caches failed DNS lookups, delaying recovery after InfluxDB restarts\",\n  \"[hypothesis] during that time fms-consumer (silent case) or fms-server (visible case) kept failing to resolve InfluxDB's host name; reported from container logs, log excerpts not committed\"\n ]\n}",
+      "schema": {
+        "type": "object",
+        "required": [
+          "order",
+          "summary"
+        ],
+        "properties": {
+          "summary": {
+            "type": "string"
+          },
+          "order": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "id",
+                "rationale"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "rationale": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "http_status": 200,
+      "raw_response": "{\"model\":\"qwen2.5:7b\",\"created_at\":\"2026-11-02T16:24:51.5057429Z\",\"message\":{\"role\":\"assistant\",\"content\":\"{\\n  \\\"summary\\\": \\\"Reordered experiments based on risk and informativeness, prioritizing the most risky and informative first.\\\",\\n  \\\"order\\\": [\\n    {\\n      \\\"id\\\": \\\"dependency_failure@influxDB\\\",\\n      \\\"rationale\\\": \\\"This experiment has the highest risk due to full-window runs, unresolved issues, and latched runs. It also has a high severity mechanism and critical findings such as silent recovery and data loss.\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"service_crash@fms-forwarder\\\",\\n      \\\"rationale\\\": \\\"This experiment has multiple full-window runs and critical findings like silent during fault, which indicate significant risk. It also has a high severity mechanism.\\\"\\n    },\\n    {\\n      \\\"id\\\": \\\"telemetry_stall@fms-forwarder\\\",\\n      \\\"rationale\\\": \\\"While this experiment has the most runs, it has fewer unresolved issues and critical findings compared to the other two. However, it still provides valuable insights into the system's behavior under stress.\\\"\\n    }\\n  ]\\n}\"},\"done\":true,\"done_reason\":\"stop\",\"total_duration\":180323617400,\"load_duration\":12908877500,\"prompt_eval_count\":1454,\"prompt_eval_cached_count\":0,\"prompt_eval_duration\":10615452000,\"eval_count\":211,\"eval_duration\":156767517000}",
+      "error": null,
+      "validation": "accepted: exact permutation of the allowlisted candidates"
+    },
+    {
+      "provider": "ollama:qwen2.5:7b",
+      "model": "qwen2.5:7b",
+      "base_url": "http://127.0.0.1:11434",
+      "options": {
+        "temperature": 0,
+        "seed": 42
+      },
+      "system_prompt": "You are an advisory reliability engineer analysing measured fault-injection results from a local sandbox of the Eclipse SDV Fleet Management Blueprint. For each finding id, state the most likely root cause using ONLY that finding's own facts and runs; name the component the facts name; say 'hypothesis' when you rely on a fact labelled hypothesis; if a run has an operator_note, take it into account. Cite only run ids that appear in that finding. Give a ranked remediation playbook (verify, mitigate, fix steps). You never execute anything. Answer with JSON only.",
+      "user_prompt": "{\n \"findings\": [\n  {\n   \"id\": \"F1\",\n   \"rule\": \"not_recovered\",\n   \"level\": \"high\",\n   \"experiment\": \"dependency_failure\",\n   \"runs\": [\n    {\n     \"run\": \"20261010T192839Z-179795\",\n     \"detail\": \"not recovered within 30 s (criteria not met within 30.0s (advances=1))\"\n    }\n   ],\n   \"facts\": [\n    \"[verified] after InfluxDB is back, recovery takes 20-27 s; in some runs the API stays HTTP 200 with frozen createdDateTime (silent), in others it answers HTTP 500 (visible)\",\n    \"[hypothesis] during that time fms-consumer (silent case) or fms-server (visible case) kept failing to resolve InfluxDB's host name; reported from container logs, log excerpts not committed\",\n    \"[hypothesis] the isahc/libcurl HTTP client caches failed DNS lookups, delaying recovery after InfluxDB restarts\"\n   ]\n  },\n  {\n   \"id\": \"F2\",\n   \"rule\": \"silent_after_rollback\",\n   \"level\": \"high\",\n   \"experiment\": \"dependency_failure\",\n   \"runs\": [\n    {\n     \"run\": \"20261010T192839Z-179795\",\n     \"detail\": \"47 recovery polls HTTP 200 but stale (~23.5 s at 0.5 s polling)\"\n    }\n   ],\n   \"facts\": [\n    \"[verified] after InfluxDB is back, recovery takes 20-27 s; in some runs the API stays HTTP 200 with frozen createdDateTime (silent), in others it answers HTTP 500 (visible)\",\n    \"[hypothesis] during that time fms-consumer (silent case) or fms-server (visible case) kept failing to resolve InfluxDB's host name; reported from container logs, log excerpts not committed\",\n    \"[hypothesis] the isahc/libcurl HTTP client caches failed DNS lookups, delaying recovery after InfluxDB restarts\"\n   ]\n  },\n  {\n   \"id\": \"F3\",\n   \"rule\": \"silent_during_fault\",\n   \"level\": \"high\",\n   \"experiment\": \"service_crash\",\n   \"runs\": [\n    {\n     \"run\": \"20261010T181441Z-920732\",\n     \"detail\": \"9 fault polls HTTP 200 but stale\"\n    },\n    {\n     \"run\": \"20261010T181503Z-31eafe\",\n     \"detail\": \"9 fault polls HTTP 200 but stale\"\n    },\n    {\n     \"run\": \"20261010T181525Z-8fa234\",\n     \"detail\": \"9 fault polls HTTP 200 but stale\"\n    },\n    {\n     \"run\": \"20261010T182331Z-b89ae0\",\n     \"detail\": \"9 fault polls HTTP 200 but stale\"\n    },\n    {\n     \"run\": \"20261010T183644Z-8941cc\",\n     \"detail\": \"9 fault polls HTTP 200 but stale\"\n    }\n   ],\n   \"facts\": [\n    \"[verified] fms-server answers HTTP 200 with the last stored status while the forwarder is paused or stopped; receivedDateTime is the request time, so only createdDateTime shows the data is stale\",\n    \"[verified] fms-forwarder ignores SIGTERM: docker stop always waits the 2 s grace and kills it (exit 137)\",\n    \"[verified] createdDateTime advances every 1.0 s at the API although the forwarder publishes every 0.5 s\"\n   ]\n  },\n  {\n   \"id\": \"F4\",\n   \"rule\": \"silent_during_fault\",\n   \"level\": \"high\",\n   \"experiment\": \"telemetry_stall\",\n   \"runs\": [\n    {\n     \"run\": \"20261010T084750Z-2a256d\",\n     \"detail\": \"10 fault polls HTTP 200 but stale\"\n    },\n    {\n     \"run\": \"20261010T085221Z-98b877\",\n     \"detail\": \"14 fault polls HTTP 200 but stale\"\n    },\n    {\n     \"run\": \"20261010T085706Z-db15a3\",\n     \"detail\": \"11 fault polls HTTP 200 but stale\"\n    },\n    {\n     \"run\": \"20261010T085737Z-c9bda7\",\n     \"detail\": \"15 fault polls HTTP 200 but stale\"\n    },\n    {\n     \"run\": \"20261010T092158Z-43ca5b\",\n     \"detail\": \"14 fault polls HTTP 200 but stale\"\n    },\n    {\n     \"run\": \"20261010T094045Z-3155f1\",\n     \"detail\": \"14 fault polls HTTP 200 but stale\"\n    },\n    {\n     \"run\": \"20261010T110323Z-07091f\",\n     \"detail\": \"14 fault polls HTTP 200 but stale\"\n    },\n    {\n     \"run\": \"20261010T110455Z-515eca\",\n     \"detail\": \"14 fault polls HTTP 200 but stale\"\n    },\n    {\n     \"run\": \"20261010T111013Z-f744d1\",\n     \"detail\": \"14 fault polls HTTP 200 but stale\"\n    },\n    {\n     \"run\": \"20261010T112456Z-cd4626\",\n     \"detail\": \"38 fault polls HTTP 200 but stale\"\n    },\n    {\n     \"run\": \"20261010T163755Z-0c25a0\",\n     \"detail\": \"12 fault polls HTTP 200 but stale\"\n    },\n    {\n     \"run\": \"20261010T172349Z-820737\",\n     \"detail\": \"13 fault polls HTTP 200 but stale\"\n    },\n    {\n     \"run\": \"20261010T181417Z-c1ab0d\",\n     \"detail\": \"9 fault polls HTTP 200 but stale\"\n    },\n    {\n     \"run\": \"20261010T183702Z-21c920\",\n     \"detail\": \"12 fault polls HTTP 200 but stale\"\n    },\n    {\n     \"run\": \"20261102T150126Z-6c22e6\",\n     \"detail\": \"15 fault polls HTTP 200 but stale\"\n    },\n    {\n     \"run\": \"20261102T151955Z-56a912\",\n     \"detail\": \"38 fault polls HTTP 200 but stale\"\n    },\n    {\n     \"run\": \"20261102T162105Z-224d82\",\n     \"detail\": \"13 fault polls HTTP 200 but stale\"\n    },\n    {\n     \"run\": \"20261102T162451Z-c0da7a\",\n     \"detail\": \"36 fault polls HTTP 200 but stale\"\n    }\n   ],\n   \"facts\": [\n    \"[verified] fms-server answers HTTP 200 with the last stored status while the forwarder is paused or stopped; receivedDateTime is the request time, so only createdDateTime shows the data is stale\",\n    \"[verified] fms-forwarder ignores SIGTERM: docker stop always waits the 2 s grace and kills it (exit 137)\",\n    \"[verified] createdDateTime advances every 1.0 s at the API although the forwarder publishes every 0.5 s\"\n   ]\n  },\n  {\n   \"id\": \"F5\",\n   \"rule\": \"slow_recovery\",\n   \"level\": \"medium\",\n   \"experiment\": \"dependency_failure\",\n   \"runs\": [\n    {\n     \"run\": \"20261010T193003Z-e2eacd\",\n     \"detail\": \"recovery verified after 24.247 s\"\n    }\n   ],\n   \"facts\": [\n    \"[verified] with InfluxDB down, fms-server requests first block ~4 s, then fail fast with HTTP 500\",\n    \"[verified] after InfluxDB is back, recovery takes 20-27 s; in some runs the API stays HTTP 200 with frozen createdDateTime (silent), in others it answers HTTP 500 (visible)\",\n    \"[hypothesis] during that time fms-consumer (silent case) or fms-server (visible case) kept failing to resolve InfluxDB's host name; reported from container logs, log excerpts not committed\",\n    \"[hypothesis] the isahc/libcurl HTTP client caches failed DNS lookups, delaying recovery after InfluxDB restarts\"\n   ]\n  },\n  {\n   \"id\": \"F6\",\n   \"rule\": \"data_loss\",\n   \"level\": \"medium\",\n   \"experiment\": \"dependency_failure\",\n   \"runs\": [\n    {\n     \"run\": \"20261010T185355Z-540224\",\n     \"detail\": \"4.011 s of stored telemetry missing\"\n    },\n    {\n     \"run\": \"20261010T185440Z-2f33aa\",\n     \"detail\": \"1.504 s of stored telemetry missing\"\n    },\n    {\n     \"run\": \"20261010T185448Z-595a16\",\n     \"detail\": \"3.508 s of stored telemetry missing\"\n    },\n    {\n     \"run\": \"20261010T191733Z-7123d9\",\n     \"detail\": \"2.503 s of stored telemetry missing\"\n    },\n    {\n     \"run\": \"20261010T193003Z-e2eacd\",\n     \"detail\": \"3.511 s of stored telemetry missing\"\n    }\n   ],\n   \"facts\": [\n    \"[verified] fms-consumer drops statuses it cannot write ('failed to write data to influx'); no buffering or backfill\",\n    \"[verified] with InfluxDB down, fms-server requests first block ~4 s, then fail fast with HTTP 500\"\n   ]\n  },\n  {\n   \"id\": \"F7\",\n   \"rule\": \"data_loss\",\n   \"level\": \"medium\",\n   \"experiment\": \"telemetry_stall\",\n   \"runs\": [\n    {\n     \"run\": \"20261102T150126Z-6c22e6\",\n     \"detail\": \"12.466 s of stored telemetry missing\"\n    },\n    {\n     \"run\": \"20261102T151955Z-56a912\",\n     \"detail\": \"25.308 s of stored telemetry missing\"\n    },\n    {\n     \"run\": \"20261102T162105Z-224d82\",\n     \"detail\": \"12.391 s of stored telemetry missing\"\n    },\n    {\n     \"run\": \"20261102T162451Z-c0da7a\",\n     \"detail\": \"25.573 s of stored telemetry missing\"\n    }\n   ],\n   \"facts\": [\n    \"[verified] fms-consumer drops statuses it cannot write ('failed to write data to influx'); no buffering or backfill\",\n    \"[verified] with InfluxDB down, fms-server requests first block ~4 s, then fail fast with HTTP 500\"\n   ]\n  },\n  {\n   \"id\": \"F8\",\n   \"rule\": \"blast_radius\",\n   \"level\": \"medium\",\n   \"experiment\": \"service_crash\",\n   \"runs\": [\n    {\n     \"run\": \"20261010T182500Z-4aa9f7\",\n     \"detail\": \"changed: grafana\"\n    }\n   ],\n   \"facts\": []\n  }\n ]\n}",
+      "schema": {
+        "type": "object",
+        "required": [
+          "analyses"
+        ],
+        "properties": {
+          "analyses": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "finding",
+                "root_cause",
+                "confidence",
+                "evidence_runs",
+                "playbook"
+              ],
+              "properties": {
+                "finding": {
+                  "type": "string"
+                },
+                "root_cause": {
+                  "type": "string"
+                },
+                "confidence": {
+                  "type": "string",
+                  "enum": [
+                    "low",
+                    "medium",
+                    "high"
+                  ]
+                },
+                "evidence_runs": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "playbook": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "kind",
+                      "step"
+                    ],
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "enum": [
+                          "verify",
+                          "mitigate",
+                          "fix"
+                        ]
+                      },
+                      "step": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "http_status": null,
+      "raw_response": null,
+      "error": "ollama unreachable: ReadTimeout: timed out",
+      "validation": "rejected, rule-based analysis used: ollama unreachable: ReadTimeout: timed out"
+    }
+  ]
+}

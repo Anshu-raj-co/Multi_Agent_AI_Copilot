@@ -99,7 +99,10 @@ def _team_read(args) -> int:
         if not files:
             print("No team sessions yet. Run: mcop team run")
         for f in files:
-            s = load_session(f)
+            try:
+                s = load_session(f)
+            except ValueError:  # e.g. a run record committed beside the sessions: not a team session
+                continue
             a = s.approval
             print(f"{s.session_id}  {s.outcome:<9}  {a.experiment_id if a else '-':<18}  run={s.run_id or '-':<24}  "
                   f"approved_by={a.approved_by if a else '-'}  ({'local' if f.parent == local else 'committed'})")
@@ -112,7 +115,12 @@ def _team_read(args) -> int:
     if path is None:
         print("not found")
         return 1
-    print(render_session(load_session(path)))
+    try:
+        session = load_session(path)
+    except ValueError:
+        print(f"not a team session: {path.name}")
+        return 1
+    print(render_session(session))
     return 0
 
 

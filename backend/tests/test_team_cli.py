@@ -129,3 +129,19 @@ def test_sessions_and_show(env, monkeypatch, capsys):
 def test_read_only_team_commands_build_no_safety_objects(env, monkeypatch, capsys):
     monkeypatch.setattr(cli, "build", lambda *_: pytest.fail("safety objects built"))
     assert cli.main(["team", "sessions"]) == 0
+
+
+def test_non_session_files_beside_sessions_are_skipped(env, monkeypatch, capsys, tmp_path):
+    """reports/team-sessions/ also holds run records, whose ids look like session ids."""
+    committed = tmp_path / "committed"
+    committed.mkdir()
+    (committed / "20261102T151955Z-56a912.json").write_text(json.dumps({"run_id": "20261102T151955Z-56a912",
+                                                                         "state": "COMPLETED"}), encoding="utf-8")
+    monkeypatch.setattr("builtins.input", lambda *_: pytest.fail("no prompt"))
+    cli.main(["team", "run", "--experiment", "telemetry_stall", "--approved-by", "Anshu"])
+    capsys.readouterr()
+    assert cli.main(["team", "sessions"]) == 0
+    lines = capsys.readouterr().out.strip().splitlines()
+    assert len(lines) == 1 and "20261102T151955Z-56a912" not in lines[0]
+    assert cli.main(["team", "show", "20261102T151955Z-56a912"]) == 1
+    assert "not a team session" in capsys.readouterr().out
