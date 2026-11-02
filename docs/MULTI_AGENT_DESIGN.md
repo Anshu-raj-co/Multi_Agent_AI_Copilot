@@ -96,6 +96,16 @@ The committed example `reports/team-sessions/20261102T151952Z-8b5eaa.json` (read
 
 `status: fallback` is by design: it means a deterministic answer was used instead of the LLM's.
 
+## System in 3D view
+
+The dashboard's **System in 3D** section shows the team in context: a blueprint layer (the 8 containers and real links
+from `config/dependency_map.json`), an agent-pipeline layer (Monitor, Planner, Human gate, Safety Executor, Analyst,
+coloured by the latest session's step statuses, with the last stage reached highlighted, or "not recorded"), and a
+safety layer (allowlist, watchdog, rollback, kill switch). It is display-only: it reads `/api/status` (including a
+display-only `fault_target`, taken from the controller's fault marker when a run such as `mcop team run` happens in
+another process) and `/api/team/sessions/latest`, and it cannot start, stop or approve anything. When the API is
+unreachable it shows "no live data" and stops all motion.
+
 ## Limitations
 
 - Agents are coordinated by our own pipeline, not an agent framework; the AI adds little beyond the deterministic layer.

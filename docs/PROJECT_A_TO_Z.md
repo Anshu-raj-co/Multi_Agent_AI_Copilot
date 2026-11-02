@@ -270,6 +270,19 @@ Other commands: `mcop run`, `mcop stop`, `mcop reset`, `mcop runs`, `mcop show R
 (pass `--out reports/generated/...`; the default path overwrites a committed file). The scripted Day-1 demo:
 `MCOP_APPROVER="<name>" ./scripts/demo-day1.sh`.
 
+**The dashboard** (`mcop serve`, http://127.0.0.1:8765/) has, from top to bottom: the **System in 3D** view, data age
+and HTTP status, the phase timeline, the 60-second data-age chart, **Controls** (the three ranked experiments, one line
+each, with Why / Predicted / Risks folded into a "details" toggle; you type your name and press Approve & start, or
+Kill / Reset), the last run, the **Agent trace**, and insights from stored runs (score, recent runs, and **Findings**
+as a card grid with long run lists folded to the first three). The 3D view draws three stacked layers: the 8 blueprint
+containers and their real links (from `config/dependency_map.json`), the five agent stages of the latest team session
+("not recorded" if there is none), and the safety layer (allowlist, watchdog, rollback, kill switch). It reads only
+`/api/status` and `/api/team/sessions/latest`. Fresh telemetry = green nodes and moving packets; during a fault the
+target turns amber (injected) or red (stale), packets stall and fms-server shows "HTTP 200 but STALE"; after recovery it
+is green again; if the API is unreachable it shows "no live data" and nothing moves (no invented motion). Drag or use
+the arrow keys to rotate; **Reset view** restores the angle. It respects dark mode and reduced-motion settings.
+Screenshots from a real fault run (session `20261102T181217Z-9cbf95`): `docs/demo/system-3d-*.png`.
+
 A fresh clone of the new repository has **not** been tested yet (**UNVERIFIED**); the steps above were run in the
 working copy on Windows 11 on 2 November 2026.
 

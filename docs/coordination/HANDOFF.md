@@ -1,5 +1,17 @@
 # Handoff
 
+## Polish pass (branch `feat/copilot-rename`, 2026-11-02, after a crashed session)
+- Done: leftover old-name identifiers renamed (thread names `mcop-*`, storage key, diagram ids); authors "Anshu Raj and
+  Garima Pandey" (README, A-to-Z, pyproject); docs cleanup pass 2 (`docs/docs-cleanup-proposal.md`: 11 files removed incl.
+  the hackathon decks and `scripts/make_ppt.py` / `make_official_ppt.py`; mentions of them further down this log are history);
+  dashboard: no "Day 2" label, compact Controls card, "Next experiments" panel removed, Findings card grid, new
+  **System in 3D** section (`tests/test_dashboard_3d.py`; `/api/status` gained display-only `fault_target`).
+- Verified on Windows 11: unit 528 passed, 3 skipped; `MCOP_LIVE=1` 531 passed; real session
+  `reports/team-sessions/20261102T181217Z-9cbf95` (approved by Anshu, `--no-ai`) used for the 3D fault screenshots.
+- Note: run the unit tests with Git Bash's `bash` ahead of the WSL launcher on PATH (else the kill-switch path test fails).
+  On this machine Windows reserved 55516-55615, so the stack was started with `MCOP_DATABROKER_HOST_PORT=45557`.
+- Next concrete task: test a fresh clone of the new repository (still UNVERIFIED).
+
 ## Multi-Agent Copilot (branch `feat/copilot-rename`, local commits since tag `pre-copilot-rename`; not pushed)
 - Rename done (package `multiagent_copilot`, CLI `mcop`, label `multiagent-copilot`, env `MCOP_`; D-024). Agent team in
   `backend/multiagent_copilot/agent_team/` + `mcop team run|sessions|show`, read-only `/api/team/sessions[/latest]`, dashboard

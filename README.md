@@ -19,7 +19,7 @@ telemetry, never from HTTP 200 alone.
 
 Not production software and not safety-certified. Faults only ever target the local Compose sandbox.
 
-![Live dashboard: Resilience Score, planner proposals and findings from recorded runs](docs/demo/dashboard-day2.png)
+![Live dashboard: the System in 3D view (blueprint containers, agent pipeline, safety layer) on a real stack](docs/demo/system-3d-normal-1200.png)
 
 **Contents:** [Results](#results) · [How it works](#how-it-works) · [Quick start](#quick-start) ·
 [Commands](#commands) · [Multi-agent copilot](#multi-agent-copilot) · [Safety model](#safety-model) · [What the AI does](#what-the-ai-does-and-does-not-do) · [Limitations](#limitations) · [Documentation](#documentation)
@@ -85,7 +85,8 @@ cd backend && python3.13 -m venv .venv
 ```
 
 If a port is taken, stop the other program; the databroker port can be moved, e.g.
-`MCOP_DATABROKER_HOST_PORT=55600 ./scripts/stack-up.sh`. Stop the stack with `./scripts/stack-down.sh`.
+`MCOP_DATABROKER_HOST_PORT=45557 ./scripts/stack-up.sh`. On Windows, pick a port outside the reserved ranges shown by
+`netsh interface ipv4 show excludedportrange protocol=tcp` (on 2 November 2026 the default 55557 was reserved there). Stop the stack with `./scripts/stack-down.sh`.
 
 ## Commands
 
@@ -142,8 +143,19 @@ Two real sessions are committed in `reports/team-sessions/` (each with a readabl
 - `20261102T162147Z-d11fad` with `--ai` (`qwen2.5:7b`; model calls in `.ai_calls.json`): the Planner's LLM answer was
   accepted (180.7 s; same order as the rules); the Analyst's LLM call timed out at 240 s and fell back to rule-based
   text; stale detected after 4.844 s, recovery verified 2.965 s after rollback, score 44.9. Session 455.0 s.
+- `20261102T181217Z-9cbf95` with `--no-ai`, run while checking the 3D view: HTTP 200 on every fault poll while stale,
+  stale detected after 5.132 s, rollback verified, recovery verified 2.81 s after rollback.
 
 The dashboard shows the latest session in the **Agent trace** panel. Design: [docs/MULTI_AGENT_DESIGN.md](docs/MULTI_AGENT_DESIGN.md).
+
+**System in 3D.** The top of the dashboard is an interactive 3D view (CSS 3D, no libraries, no external URLs) of three
+layers: the 8 blueprint containers with their real links from `config/dependency_map.json`, the agent pipeline, and
+the safety layer (allowlist, watchdog, rollback, kill switch). It reads only `/api/status` and
+`/api/team/sessions/latest`: green with flowing packets when telemetry is fresh; during a fault the target turns
+amber/red, packets stall and fms-server carries an "HTTP 200 but STALE" marker; if the API is unreachable it says
+"no live data" and nothing moves. Drag (or arrow keys) to rotate, **Reset view** to restore. Screenshots from a real
+fault run: [normal](docs/demo/system-3d-normal-1200.png), [fault](docs/demo/system-3d-fault-1200.png),
+[500 px dark](docs/demo/system-3d-normal-500-dark.png), [no live data](docs/demo/system-3d-no-live-data-1200.png).
 
 ## Safety model
 
@@ -206,3 +218,4 @@ Start here:
 | `reports/day2/README.md` · `docs/demo/DAY1_REPORT.md` | Per-run evidence, Day 2 and Day 1 |
 | `docs/recon.md` · `docs/ARCHITECTURE.md` · `docs/DECISIONS.md` | Recon, detailed architecture, decision log |
 | `docs/testing/TESTING.md` · `docs/testing/SAFETY_REVIEW.md` | Tests and safety review |
+| `docs/docs-cleanup-proposal.md` | What was removed from `docs/` and why |
