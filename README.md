@@ -8,9 +8,6 @@ A human-supervised multi-agent copilot for safe chaos engineering on the
 
 **Authors:** Anshu Raj and Garima Pandey
 
-Multi-Agent Copilot began as the ResiliencePilot SDV entry for the Bosch Hackathon 2026 (original repository:
-https://github.com/Anshu-raj-co/ResiliencePilot).
-
 **The problem it proves:** the blueprint's rFMS API keeps answering **HTTP 200**, with a fresh-looking
 `receivedDateTime`, while the vehicle telemetry (`createdDateTime`) is frozen. A health check that looks at HTTP
 status or "container running" calls that healthy. Multi-Agent Copilot detects the gap from real observations, injects
@@ -197,6 +194,12 @@ the rules, and **1 of 7** analyst explanations passed validation each time; the 
 - The watchdog runs in-process; a hard-killed backend leaves the fault until the kill switch or a restart.
 - One vehicle, one host. Small samples (n = 2–8 per experiment).
 - Agents are coordinated by our own pipeline, not an agent framework; the AI adds little beyond the deterministic layer.
+
+## Project history
+
+Multi-Agent Copilot extends the ResiliencePilot SDV project (Bosch Hackathon 2026, original repository:
+https://github.com/Anshu-raj-co/ResiliencePilot). The multi-agent team layer, human approval gate, session trace, team
+API, dashboard panels and the System in 3D view were added for this project.
 
 ## Documentation
 

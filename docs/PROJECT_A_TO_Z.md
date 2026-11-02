@@ -43,19 +43,20 @@ a Monitor, a Planner, a human approval gate, a Safety Executor and an Analyst (s
 
 ## 2. Origin and lineage
 
-Multi-Agent Copilot began as the **ResiliencePilot SDV** entry for the **Bosch Hackathon 2026** (original repository:
-https://github.com/Anshu-raj-co/ResiliencePilot). For the university project review we had little time, so instead of
-starting from scratch we reused that tested project and extended it.
+Multi-Agent Copilot extends the **ResiliencePilot SDV** project (**Bosch Hackathon 2026**, original repository:
+https://github.com/Anshu-raj-co/ResiliencePilot).
 
 **What stayed the same:** the system under test, every safety rule, the three experiments, the evidence files under
 `reports/day1/`, `reports/day2/` and `reports/guardrail-demo/` (recorded runs, never edited), the scoring, the
-dashboard's existing panels, all ports and all container names, and the tagline.
+dashboard's live panels (status, timeline, data-age chart, last run, score), all ports and all container names, and the tagline.
 
-**What changed:**
+**What was added or changed:**
 - **Names** (section 10): package, command-line tool, Compose project label and environment-variable prefix.
 - **A new agent-team layer** (`backend/multiagent_copilot/agent_team/`) that wraps the existing code into five stages
   with a recorded trace (a log of every hand-off), plus `mcop team` commands, two read-only API routes and an
   "Agent trace" panel on the dashboard.
+- **Dashboard:** the System in 3D view, a compact Controls card and a Findings card grid; the read-only planner panel
+  was removed (the planner API and the Controls proposals remain).
 - **Two bug fixes found during the move to Windows:** a path check in dependency discovery, and the kill switch writing
   its stop file outside the repository when the folder name contains a space (`docs/rename-recon.md`, git log).
 
@@ -375,7 +376,10 @@ controller still validates the request, caps the duration, watches guardrails an
 **Is the data real?** Yes. The blueprint runs locally; every number comes from a recorded run, and the committed session
 in section 9 is a real run.
 
-**Why did you reuse a hackathon project?** Time was short. The lineage is disclosed in the README, this guide and D-024.
+**How does this relate to the hackathon project?** It extends ResiliencePilot SDV: the system under test, the safety
+rules, the experiments and the recorded evidence stayed; the agent-team layer, human approval gate, session trace, team
+API, dashboard panels and the System in 3D view were added (section 2). The lineage is stated in the README, this guide
+and D-024.
 
 ## 16. Where to read next
 
