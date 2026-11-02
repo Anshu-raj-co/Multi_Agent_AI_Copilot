@@ -6,14 +6,15 @@
 # Afterwards: python -m multiagent_copilot reset --operator NAME --note "..."
 set -uo pipefail   # no -e: one failing docker call must not skip the remaining rollback steps
 MCOP_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-read -r PROJECT DATA_DIR TARGETS < <(python - "$MCOP_ROOT" <<'PY'
+# Tab-separated: the repo path (and so DATA_DIR) may contain spaces.
+IFS=$'\t' read -r PROJECT DATA_DIR TARGETS < <(python - "$MCOP_ROOT" <<'PY'
 import json, pathlib, sys
 root = pathlib.Path(sys.argv[1])
 cfg = json.loads((root / "config" / "safety.json").read_text())
 cat = json.loads((root / "config" / "experiments.json").read_text())
 data = pathlib.Path(cfg["data_dir"]); data = data if data.is_absolute() else root / data
 targets = ",".join(sorted({t for s in cat.values() for t in s["allowed_targets"]}))
-print(cfg["compose_project"], data.as_posix(), targets)
+print(cfg["compose_project"], data.as_posix(), targets, sep="\t")
 PY
 )
 if [ -z "${PROJECT:-}" ] || [ -z "${TARGETS:-}" ]; then
