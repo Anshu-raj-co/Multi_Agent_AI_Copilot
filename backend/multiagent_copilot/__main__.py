@@ -250,7 +250,7 @@ def main(argv: list[str] | None = None) -> int:
     sd.add_argument("--json", action="store_true"); sd.add_argument("--out", help="also write the JSON result here")
     sbs = sub.add_parser("show-baseline"); sbs.add_argument("file", nargs="?")
     sv = sub.add_parser("serve"); sv.add_argument("--port", type=int, default=8765)
-    rp_ = sub.add_parser("report"); rp_.add_argument("--run"); rp_.add_argument("--out", default="reports/day1/explainer.html")
+    srep = sub.add_parser("report"); srep.add_argument("--run"); srep.add_argument("--out", default="reports/day1/explainer.html")
     stm = sub.add_parser("team", help="agent team: Monitor -> Planner -> human gate -> Safety Executor -> Analyst")
     tsub = stm.add_subparsers(dest="team_cmd", required=True)
     tr = tsub.add_parser("run", help="one session; a named human approves at the gate (no flag skips it)")

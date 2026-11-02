@@ -20,7 +20,7 @@ flowchart LR
     SRV[fms-server<br/>rFMS API<br/>receivedDateTime = now] -->|Flux query| IDB
     GRA[grafana] -.->|Flux| IDB
   end
-  subgraph rp["Multi-Agent Copilot backend (host)"]
+  subgraph mcop["Multi-Agent Copilot backend (host)"]
     OBS[RfmsObserver<br/>read-only] --> TRK[FreshnessTracker<br/>age + progression]
     ORC[Orchestrator<br/>state machine] --> OBS
     SAF[SafetyController<br/>schema · allowlist · run lock · latch] --> ORC

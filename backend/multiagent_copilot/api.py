@@ -168,7 +168,7 @@ def create_app(cfg: SafetyConfig, catalog: dict[str, ExperimentSpec], ctl: Safet
     async def lifespan(app: FastAPI):
         app.state.recovered = ctl.startup_recovery()  # same as every CLI start
         if monitor:
-            threading.Thread(target=monitor_loop, name="rp-monitor", daemon=True).start()
+            threading.Thread(target=monitor_loop, name="mcop-monitor", daemon=True).start()
         yield
         stop_monitor.set()
 

@@ -64,7 +64,7 @@ class ExperimentRunner:
             finally:
                 self.ctl.end(run_id)
 
-        t = threading.Thread(target=target, name=f"rp-run-{run_id}", daemon=True)
+        t = threading.Thread(target=target, name=f"mcop-run-{run_id}", daemon=True)
         self.threads[run_id] = t
         t.start()
         return run_id

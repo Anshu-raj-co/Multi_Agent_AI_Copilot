@@ -107,7 +107,7 @@ class BlastRadiusMonitor(threading.Thread):
 
     def __init__(self, docker: Docker, project: str, ids: list[str], baseline: dict[str, SnapshotEntry],
                  allowed: set[str], interval_s: float, max_failures: int, relist_every: int = 5) -> None:
-        super().__init__(name="rp-blast-radius", daemon=True)
+        super().__init__(name="mcop-blast-radius", daemon=True)
         self.docker, self.project = docker, project
         self.ids, self.baseline, self.allowed = list(ids), baseline, set(allowed)
         self.interval_s, self.max_failures, self.relist_every = interval_s, max_failures, relist_every

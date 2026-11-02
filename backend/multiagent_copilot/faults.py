@@ -192,7 +192,7 @@ class Watchdog(threading.Thread):
     """Fires once at an absolute monotonic deadline unless cancelled. Independent of API, UI and AI."""
 
     def __init__(self, deadline_mono: float, on_fire: Callable[[], None], tick_s: float = 0.05) -> None:
-        super().__init__(name="rp-watchdog", daemon=True)
+        super().__init__(name="mcop-watchdog", daemon=True)
         self.deadline_mono = deadline_mono
         self.on_fire = on_fire
         self.tick_s = tick_s

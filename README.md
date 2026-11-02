@@ -54,9 +54,9 @@ flowchart LR
     CON -->|write| IDB[(InfluxDB)]
     SRV[fms-server rFMS API<br/>receivedDateTime = now] -->|query| IDB
   end
-  RP[Multi-Agent Copilot<br/>observer · safety controller · watchdog] -->|GET, read-only| SRV
-  RP ==>|pause / stop, allowlisted only| FWD
-  RP ==>|stop / start, allowlisted only| IDB
+  MCOP[Multi-Agent Copilot<br/>observer · safety controller · watchdog] -->|GET, read-only| SRV
+  MCOP ==>|pause / stop, allowlisted only| FWD
+  MCOP ==>|stop / start, allowlisted only| IDB
   KS[scripts/kill-switch.sh] ==>|unpause / start| FWD
 ```
 

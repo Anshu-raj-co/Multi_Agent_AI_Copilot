@@ -23,7 +23,7 @@ If this recurs: quit Docker Desktop fully, relaunch `%LOCALAPPDATA%\Programs\Doc
 
 ## 2. Repository state
 
-- Repo `https://github.com/Anshu-raj-co/ResiliencePilot.git`, branch `main`, 3 commits, clean. [V]
+- Repo: the original hackathon repository (see the lineage note in README.md), branch `main`, 3 commits, clean. [V]
 - `Fleet Management/fleet-management/` is a vendored copy (no `.git`) of
   **https://github.com/eclipse-sdv-blueprints/fleet-management** (Apache-2.0, `LICENSE` present). [V]
 - Revision: 5 sampled files (`fms-blueprint-compose.yaml`, `components/Cargo.toml`, `fms-server/Dockerfile`,

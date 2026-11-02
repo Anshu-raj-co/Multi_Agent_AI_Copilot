@@ -915,12 +915,12 @@ function tolerancePanel() {
 }
 function boothPanel() {
   const r = R.r, s = S, sf = D.safety;
-  const rp = DM.nodes["multiagent-copilot"] || {};
+  const mc = DM.nodes["multiagent-copilot"] || {};
   const armed = R.ev("guardrails_armed");
   const exp = (D.experiments[r.request.experiment_type] || {}).fields || {};
   const gr = r.guardrails || {};
   return head("Safety controller (deterministic)", `<div><span class="role">Executor (deterministic, no AI)</span></div>`) + `
-    <div class="fact">Stands for the <span class="mono">multiagent-copilot</span> node of the dependency map: ${esc(rp.role || "")}${srcl(rp.src || DM.path)}</div>
+    <div class="fact">Stands for the <span class="mono">multiagent-copilot</span> node of the dependency map: ${esc(mc.role || "")}${srcl(mc.src || DM.path)}</div>
     <h4>This run</h4>
     ${kvRows([["approver", val(r.request.approved_by)], ["hypothesis", val(r.request.hypothesis)],
       ["state now", val(s.runState)], ["final state", val(r.state)], ["stop reason", `<span class="mono">${val(r.stop_reason)}</span>`],

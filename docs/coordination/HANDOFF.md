@@ -15,7 +15,7 @@ approved by the lead) + the final count update. PR #8 still open (older)._
 ## Data-quality gate + submission deck: branch `feat/data-quality` (PR open; main is code-frozen, merge only with the lead's approval)
 - Scope (instructor task): new isolated package `backend/multiagent_copilot/dq/` (schema, normalizer, batch_engine, store,
   generator, report, cli; `python -m multiagent_copilot.dq generate|ingest|show-quarantine|report`), new
-  `backend/tests/test_dq.py` (79 tests), `scripts/make_ppt.py` -> `docs/submission/ResiliencePilot.pptx` (6 slides),
+  `backend/tests/test_dq.py` (79 tests), `scripts/make_ppt.py` -> a 6-slide hackathon deck (since removed),
   `docs/DATA_QUALITY.md`, `docs/demo/VIDEO_SCRIPT.md` (2 min, 20 s DQ section), sample `docs/dq/report.html`.
   `backend/pyproject.toml`: package `multiagent_copilot.dq`, `tzdata` on Windows, extra `slides` (python-pptx).
   No change to safety/observer/telemetry/orchestrator or to existing tests.

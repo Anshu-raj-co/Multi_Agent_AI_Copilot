@@ -57,7 +57,7 @@ flowchart LR
     SRV[fms-server<br/>rFMS web API] -->|query| IDB
     GRA[grafana<br/>charts] -.->|query| IDB
   end
-  subgraph rp["Multi-Agent Copilot (Python, on your machine)"]
+  subgraph mcop["Multi-Agent Copilot (Python, on your machine)"]
     OBS[Observer<br/>read-only] --> TRK[Telemetry verifier]
     SAF[Safety controller] --> ORC[Orchestrator]
     ORC --> OBS

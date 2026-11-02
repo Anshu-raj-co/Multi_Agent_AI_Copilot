@@ -259,7 +259,7 @@ $("bReset").onclick=function(){if(confirm("Reset the safety latch? Only do this 
 
 // ---- insights (read-only): scores, planner proposals, findings ----
 var SRC="local", lastSeenRun=null;
-try{SRC=localStorage.getItem("rp-src")||"local";}catch(e){}
+try{SRC=localStorage.getItem("mcop-src")||"local";}catch(e){}
 function fmt(c){return c&&c.measured?Number(c.score).toFixed(2):null;}
 function scoreCard(s){
   if(!s){$("score").innerHTML='<div style="margin-top:10px">'+NR+'</div>';return;}
@@ -294,7 +294,7 @@ function loadInsights(){
     .then(function(d){if(d.detail){$("insMeta").textContent=d.detail;return;} renderInsights(d);})
     .catch(function(e){$("insMeta").textContent="insights unavailable: "+e;});
 }
-["srcLocal","srcDay2"].forEach(function(id){$(id).onclick=function(){SRC=this.dataset.src;try{localStorage.setItem("rp-src",SRC);}catch(e){} loadInsights();};});
+["srcLocal","srcDay2"].forEach(function(id){$(id).onclick=function(){SRC=this.dataset.src;try{localStorage.setItem("mcop-src",SRC);}catch(e){} loadInsights();};});
 var TS="local"; try{TS=localStorage.getItem("mcop-team-src")||"local";}catch(e){}
 var TEAM_ROWS=[["monitor","Monitor"],["planner","Planner"],["gate","Human gate"],["executor","Safety Executor"],["analyst","Analyst"]];
 function teamChip(st){var c={ok:"ok",completed:"ok",fallback:"warn",aborted:"warn",refused:"bad",error:"bad"}[st]||"";return '<span class="chip '+c+'">'+esc(st)+'</span>';}
