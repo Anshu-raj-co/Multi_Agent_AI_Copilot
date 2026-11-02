@@ -190,6 +190,10 @@ FAILED tests/test_discover.py::test_host_path_mapping - AssertionError: asser...
   fix the cause): treat a leading `/` as absolute with `PurePosixPath`, since Docker bind-mount sources are always
   Linux paths. `discover.py` is read-only discovery code, not on the safety path.
 
+Baseline on Windows: 403 passed, 3 skipped, 1 failed
+(test_host_path_mapping). Earlier 317/11 was macOS, before the
+data-quality package (+79 tests).
+
 ## Risks I see
 
 1. **Precondition conflict, Phase 2:** `backend/.venv` exists (the rule says it must not, and also says never modify
