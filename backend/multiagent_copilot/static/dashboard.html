@@ -51,7 +51,8 @@ svg text{fill:var(--fg);font-family:inherit}
 .lv.high{color:var(--bad);border-color:var(--bad)}.lv.medium{color:var(--warn);border-color:var(--warn)}
 .pick{list-style:none;padding:0;margin:8px 0}.pick li{border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin:6px 0}
 .pick li.sel{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}.pick label{display:flex;gap:8px;align-items:baseline;cursor:pointer}
-.pick ul{margin:4px 0 0 18px;padding:0}input[type=text]{font:inherit;padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--fg);min-width:0;width:100%;box-sizing:border-box}
+.pick ul{margin:4px 0 0 18px;padding:0}.pick .one{display:flex;flex-wrap:wrap;gap:2px 8px;align-items:baseline;min-width:0}
+.pick details{margin:4px 0 0 24px}.pick summary{cursor:pointer;font-size:12.5px;color:var(--muted)}.pick details .small{margin-top:4px}input[type=text]{font:inherit;padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--fg);min-width:0;width:100%;box-sizing:border-box}
 .cmd{font:12px/1.4 ui-monospace,Consolas,monospace;background:var(--chipbg);border:1px solid var(--line);border-radius:6px;padding:3px 6px;display:inline-block;overflow-wrap:anywhere}
 #recent td:first-child{width:auto}
 #recent .mono{white-space:nowrap;overflow-wrap:normal}
@@ -88,8 +89,6 @@ svg text{fill:var(--fg);font-family:inherit}
 
 <div class="row" style="margin-top:14px">
   <div class="card"><div class="k" style="margin-bottom:4px">Controls · pick one experiment, approve with your name</div>
-    <div class="small">Ranked by the rule-based planner (most informative / riskiest first). Target and duration come from the
-      catalogue on the server; validation, the one-run lock, the watchdog and the kill switch always apply.</div>
     <ol class="pick" id="pick"><li class="na">loading proposals…</li></ol>
     <label class="small" for="approver">Approver (your name, recorded with the run)</label>
     <input type="text" id="approver" maxlength="80" autocomplete="name" placeholder="e.g. Jane Doe">
@@ -112,7 +111,7 @@ svg text{fill:var(--fg);font-family:inherit}
   <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between">
     <div class="k">Insights from stored run records (read-only)</div>
     <div class="seg" role="group" aria-label="Run source">
-      <button id="srcLocal" data-src="local">Local runs</button><button id="srcDay2" data-src="day2">Committed Day-2 evidence</button></div>
+      <button id="srcLocal" data-src="local">Local runs</button><button id="srcRecorded" data-src="day2">Recorded evidence</button></div>
   </div>
   <div class="small" id="insMeta" style="margin-top:6px"></div>
 </div>
@@ -222,7 +221,7 @@ function render(s){
   var b=$("banner"); if(s.blocked){b.style.display="block";b.textContent="Blocked: "+(s.latched_reason||"emergency stop engaged")+". Check the stack, then Reset.";} else b.style.display="none";
   READY=!busyReq&&s.state==="READY"&&!s.blocked; startState(); $("bReset").disabled=busyReq||!s.blocked||s.state==="BUSY";
 }
-var READY=false, PICK=null, PROPS=[];
+var READY=false, PICK=null, PROPS=[], OPEN={};
 function startState(){$("bStart").disabled=!(READY&&PICK&&/[A-Za-z\u00C0-\uFFFF]/.test($("approver").value));}
 function loadProposals(){
   fetch("/api/proposals",{cache:"no-store"}).then(function(r){return r.json();}).then(function(d){
@@ -230,12 +229,14 @@ function loadProposals(){
     PROPS=d.proposals; if(PICK&&!PROPS.some(function(p){return p.experiment_id===PICK;}))PICK=null;
     $("pick").innerHTML=PROPS.map(function(p){var sel=p.experiment_id===PICK;
       return '<li'+(sel?' class="sel"':'')+'><label><input type="radio" name="exp" value="'+esc(p.experiment_id)+'"'+(sel?' checked':'')+'>'+
-        '<span><b>#'+p.rank+' '+esc(p.experiment_id)+'</b> · '+esc(p.mechanism)+' <span class="mono">'+esc(p.target)+'</span> for '+p.duration_s+' s'+
-        ' <span class="small">(priority '+p.priority.toFixed(3)+')</span></span></label>'+
+        '<span class="one"><b>#'+p.rank+' '+esc(p.experiment_id)+'</b><span>'+esc(p.mechanism)+' · <span class="mono">'+esc(p.target)+'</span></span>'+
+        '<span>'+p.duration_s+' s</span><span class="small">priority '+p.priority.toFixed(3)+'</span></span></label>'+
+        '<details data-exp="'+esc(p.experiment_id)+'"'+(OPEN[p.experiment_id]?' open':'')+'><summary>Why, predicted symptoms and risks</summary>'+
         '<div class="small"><b>Why:</b> '+p.rationale.map(esc).join("; ")+'</div>'+
         '<div class="small"><b>Predicted:</b><ul>'+p.predicted_symptoms.map(function(x){return "<li>"+esc(x)+"</li>";}).join("")+'</ul></div>'+
-        '<div class="small"><b>Risks:</b><ul>'+p.risks.map(function(x){return "<li>"+esc(x)+"</li>";}).join("")+'</ul></div></li>';}).join("");
+        '<div class="small"><b>Risks:</b><ul>'+p.risks.map(function(x){return "<li>"+esc(x)+"</li>";}).join("")+'</ul></div></details></li>';}).join("");
     Array.prototype.forEach.call(document.querySelectorAll('input[name=exp]'),function(r){r.onchange=function(){PICK=this.value;loadProposals();startState();};});
+    Array.prototype.forEach.call(document.querySelectorAll('#pick details'),function(x){x.ontoggle=function(){OPEN[this.dataset.exp]=this.open;};});
     startState();
   }).catch(function(e){$("pick").innerHTML='<li class="na">proposals unavailable: '+esc(String(e))+'</li>';});
 }
@@ -276,7 +277,7 @@ function scoreCard(s){
   $("score").innerHTML=h;
 }
 function renderInsights(d){
-  $("insMeta").textContent=d.runs+" run records from "+(d.source==="day2"?"reports/day2 (committed)":"the local evidence store")+". Same rules as mcop score / mcop plan / mcop findings.";
+  $("insMeta").textContent=d.runs+" run records from "+(d.source==="day2"?"the recorded evidence in the repository":"the local evidence store")+".";
   scoreCard(d.latest_scored);
   var rows=Object.keys(d.summary).map(function(t){var v=d.summary[t];return "<tr><td>"+esc(t)+"</td><td>median <b>"+v.median+"</b> · n="+v.n+" · "+v.min+"–"+v.max+"</td></tr>";});
   $("summary").innerHTML=rows.length?rows.join(""):"<tr><td>full-window runs</td><td>"+NR+"</td></tr>";
@@ -289,12 +290,12 @@ function renderInsights(d){
     '<div class="small">'+f.runs.map(function(h){return '<span class="mono">'+esc(h.run)+'</span>: '+esc(h.detail)+(h.note?' <i>(note: '+esc(h.note)+')</i>':'');}).join("<br>")+'</div></li>';}).join(""):'<li>No rule fired.</li>';
 }
 function loadInsights(){
-  ["srcLocal","srcDay2"].forEach(function(id){$(id).setAttribute("aria-pressed",String($(id).dataset.src===SRC));});
+  ["srcLocal","srcRecorded"].forEach(function(id){$(id).setAttribute("aria-pressed",String($(id).dataset.src===SRC));});
   fetch("/api/insights?source="+encodeURIComponent(SRC),{cache:"no-store"}).then(function(r){return r.json();})
     .then(function(d){if(d.detail){$("insMeta").textContent=d.detail;return;} renderInsights(d);})
     .catch(function(e){$("insMeta").textContent="insights unavailable: "+e;});
 }
-["srcLocal","srcDay2"].forEach(function(id){$(id).onclick=function(){SRC=this.dataset.src;try{localStorage.setItem("mcop-src",SRC);}catch(e){} loadInsights();};});
+["srcLocal","srcRecorded"].forEach(function(id){$(id).onclick=function(){SRC=this.dataset.src;try{localStorage.setItem("mcop-src",SRC);}catch(e){} loadInsights();};});
 var TS="local"; try{TS=localStorage.getItem("mcop-team-src")||"local";}catch(e){}
 var TEAM_ROWS=[["monitor","Monitor"],["planner","Planner"],["gate","Human gate"],["executor","Safety Executor"],["analyst","Analyst"]];
 function teamChip(st){var c={ok:"ok",completed:"ok",fallback:"warn",aborted:"warn",refused:"bad",error:"bad"}[st]||"";return '<span class="chip '+c+'">'+esc(st)+'</span>';}
