@@ -26,6 +26,8 @@ record, a log or a test run in this repository, with its source named. Anything 
 
 ## 1. What this project is
 
+**Authors:** Anshu Raj and Garima Pandey.
+
 **Multi-Agent Copilot is a human-supervised multi-agent copilot for safe chaos engineering on the Eclipse SDV Fleet
 Management Blueprint.**
 

@@ -6,6 +6,8 @@ A human-supervised multi-agent copilot for safe chaos engineering on the
 
 *HTTP 200 is not recovery. Fresh data is.*
 
+**Authors:** Anshu Raj and Garima Pandey
+
 Multi-Agent Copilot began as the ResiliencePilot SDV entry for the Bosch Hackathon 2026 (original repository:
 https://github.com/Anshu-raj-co/ResiliencePilot).
 
