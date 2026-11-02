@@ -16,7 +16,7 @@ from __future__ import annotations
 import json
 import re
 from dataclasses import dataclass, field
-from pathlib import Path
+from pathlib import Path, PurePath, PurePosixPath
 
 PROJECT_LABEL = "com.docker.compose.project"
 SERVICE_LABEL = "com.docker.compose.service"
@@ -54,13 +54,16 @@ class Edge:
         return "high" if best >= 3 else "medium" if best == 2 else "low"
 
 
-def _host_path(source: str) -> Path | None:
+def _host_path(source: str) -> PurePath | None:
     """Map a Docker Desktop bind-mount source back to a host path (best effort)."""
     m = re.match(r"^/run/desktop/mnt/host/([a-z])/(.*)$", source)
     if m:
         return Path(f"{m.group(1).upper()}:/{m.group(2)}")
     p = Path(source)
-    return p if p.is_absolute() else None
+    if p.is_absolute():
+        return p
+    # Bind-mount sources are Linux paths: a leading '/' is absolute on every OS (Windows Path needs a drive).
+    return PurePosixPath(source) if source.startswith("/") else None
 
 
 def node_from_inspect(info: dict) -> Node:
@@ -150,7 +153,8 @@ def discover(infos: list[dict], read_file=None) -> tuple[list[Node], list[Edge]]
 
 
 def read_text_file(source: str) -> str | None:
-    p = _host_path(source)
+    host = _host_path(source)
+    p = None if host is None else Path(host)
     try:
         if p is None or not p.is_file() or p.stat().st_size > _MAX_FILE_BYTES:
             return None
