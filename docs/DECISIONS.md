@@ -122,3 +122,5 @@ are not modified. Consequence: on Apple Silicon these two services run emulated,
 with x86 runs; the platform is recorded next to run statistics.
 
 **D-024: Renamed ResiliencePilot SDV to Multi-Agent Copilot for the university project review.** Compose label (multiagent-copilot), package (multiagent_copilot), CLI (mcop) and env prefix (MCOP_) changed together; committed evidence under reports/ left untouched; original Bosch repository left unchanged.
+
+**D-025: Agent team is our own pipeline, not an agent framework; the Safety Executor never uses an LLM; approval can never be skipped; two of four agents may use the local LLM and both have deterministic fallbacks.**

@@ -1,5 +1,8 @@
 # Multi-Agent Copilot — The Project Explained
 
+> The agent-team layer (Monitor, Planner, human gate, Safety Executor, Analyst) added for the university review is
+> described in [MULTI_AGENT_DESIGN.md](MULTI_AGENT_DESIGN.md); this guide covers the original Day-1 system it wraps.
+
 A plain-English guide for teammates, judges and new users. It assumes you are a student who is new to cloud-native
 software and chaos engineering. Every technical word is explained the first time it appears, and the glossary in
 §13 lists all of them.

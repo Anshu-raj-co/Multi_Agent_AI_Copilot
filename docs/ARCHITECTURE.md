@@ -1,5 +1,7 @@
 # Architecture (Day 1)
 
+Current overview: [ARCHITECTURE_OVERVIEW.md](ARCHITECTURE_OVERVIEW.md); agent-team layer: [MULTI_AGENT_DESIGN.md](MULTI_AGENT_DESIGN.md).
+
 ```
                  ┌──────────────── Docker Compose project "multiagent-copilot" (local sandbox) ───────────────┐
                  │ csv-provider → databroker → fms-forwarder ─zenoh→ fms-zenoh-router → fms-consumer → InfluxDB │

@@ -20,7 +20,7 @@ Not production software and not safety-certified. Faults only ever target the lo
 ![Live dashboard: Resilience Score, planner proposals and findings from recorded runs](docs/demo/dashboard-day2.png)
 
 **Contents:** [Results](#results) · [How it works](#how-it-works) · [Quick start](#quick-start) ·
-[Commands](#commands) · [Safety model](#safety-model) · [What the AI does](#what-the-ai-does-and-does-not-do) · [Limitations](#limitations) · [Documents](#documents)
+[Commands](#commands) · [Multi-agent copilot](#multi-agent-copilot) · [Safety model](#safety-model) · [What the AI does](#what-the-ai-does-and-does-not-do) · [Limitations](#limitations) · [Documents](#documents)
 
 ## Results
 
@@ -97,8 +97,47 @@ If a port is taken, stop the other program; the databroker port can be moved, e.
 | `mcop discover` | Dependency graph from `docker inspect`, diffed against the map | no |
 | `mcop advise [--offline]` | Advisory AI planner + analyst on local Ollama, rule-based fallback | no |
 | `mcop serve` | Dashboard + local API on 127.0.0.1:8765 | **yes**: pick one ranked experiment, approve with your typed name |
+| `mcop team run [--experiment ID] [--approved-by NAME] [--ai \| --no-ai]` | One agent-team session (see below) | **yes**, only after a named human approves |
+| `mcop team sessions` · `mcop team show SESSION_ID` | List / print recorded team sessions | no |
 
 Demo: `docs/demo/DAY2_DEMO_SCRIPT.md` (3 minutes). Day-1 scripted demo: `MCOP_APPROVER="<name>" ./scripts/demo-day1.sh`.
+
+## Multi-agent copilot
+
+Four agents with distinct roles coordinated by an explicit Python pipeline that records every hand-off in a trace:
+
+```
+Monitor -> Planner -> HUMAN GATE -> Safety Executor -> Analyst
+```
+
+| Stage | Wraps (existing, tested code) | LLM or deterministic |
+|---|---|---|
+| Monitor | `sdv_adapter.RfmsObserver`, `telemetry.FreshnessTracker`, stored baseline (`EvidenceStore.latest_baseline`) | deterministic |
+| Planner | `planner.plan` (rule-based ranking), `ai.ai_plan` (optional reorder) | optional local LLM, rule-based fallback |
+| Human gate | `mcop team run` prompt or both flags -> `ApprovalRecord` | a named human |
+| Safety Executor | `safety.SafetyController` + `orchestrator.ExperimentRunner` (faults, guardrails, watchdog, rollback, recovery check) | deterministic, never an LLM |
+| Analyst | `scoring.score_run`, `findings.derive_findings`, `ai.ai_analyse` (grounding check) | optional local LLM, rule-based fallback |
+
+- The Monitor and the Safety Executor are deterministic on purpose.
+- Only the Planner and the Analyst can use the local LLM and both fall back to rule-based output.
+- A named human approves every run. `mcop team run` is non-interactive only when both `--experiment` and
+  `--approved-by` are given; otherwise you pick a proposal, type your name and type `APPROVE`. No flag skips approval.
+- This is not built on an agent framework such as LangGraph.
+- In the recorded real calls only 1 of 7 analyst explanations passed the evidence check.
+
+```bash
+.venv/Scripts/mcop team run                                         # interactive: proposals, your name, APPROVE
+.venv/Scripts/mcop team run --experiment telemetry_stall --approved-by "<name>" --no-ai
+.venv/Scripts/mcop team sessions                                    # newest first
+.venv/Scripts/mcop team show <session_id>
+```
+
+Sessions are written to `backend/data/team_sessions/<session_id>.json` (contract `contracts/team_session.schema.json`).
+One real session is committed: `reports/team-sessions/20261102T151952Z-8b5eaa.json` (readable: `.txt` beside it),
+run `20261102T151955Z-56a912`, `--no-ai` because Ollama was not running: Monitor 6/6 FRESH, Planner rule-based
+fallback, approved by Anshu, `telemetry_stall` 25 s COMPLETED (stale detected after 5.332 s with HTTP 200 on every
+fault poll, recovery verified 2.67 s after rollback), Analyst score 46.1. The dashboard shows it in the **Agent trace**
+panel. Design: [docs/MULTI_AGENT_DESIGN.md](docs/MULTI_AGENT_DESIGN.md).
 
 ## Safety model
 
@@ -138,6 +177,7 @@ the rules, and **1 of 7** analyst explanations passed validation; the other 6 we
   16 GB laptop. The deterministic layer carries the analysis.
 - The watchdog runs in-process; a hard-killed backend leaves the fault until the kill switch or a restart.
 - One vehicle, one host. Small samples (n = 2–8 per experiment).
+- Agents are coordinated by our own pipeline, not an agent framework; the AI adds little beyond the deterministic layer.
 
 ## Documents
 

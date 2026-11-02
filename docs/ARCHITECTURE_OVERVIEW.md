@@ -47,6 +47,9 @@ flowchart TB
 | Analyse | `scoring.py`, `planner.py`, `findings.py`, `discover.py`, `insights.py` | Resilience Score, experiment ranking, findings report, dependency discovery; all read-only |
 | Advise | `ai.py` | Local LLM planner + analyst; isolated imports, loopback-only, validated and grounded, rule-based fallback |
 | Interfaces | `__main__.py` (`mcop`), `api.py` + `static/dashboard.html`, `scripts/*.sh` | CLI, localhost dashboard, stack scripts, kill switch |
+| Copilot | `agent_team/` (`trace.py`, `agents.py`, `executor_agent.py`, `pipeline.py`) | Monitor -> Planner -> human gate -> Safety Executor -> Analyst; session trace |
+
+**Copilot layer.** `agent_team/` wraps the layers above without changing them. The Monitor (observe, deterministic) checks freshness and a baseline; the Planner ranks allowlisted experiments by rules, and the local LLM may only reorder them; a named human approves at the gate; the Safety Executor (deterministic, never an LLM) is the only agent module that reaches `safety.py` and `orchestrator.py`, and calls them exactly like `mcop run`; the Analyst scores the run and explains findings, with AI answers grounding-checked. An explicit Python pipeline records every hand-off in `backend/data/team_sessions/<session_id>.json`. Import guards in `tests/test_team_import_guard.py` enforce the separation. Details: [MULTI_AGENT_DESIGN.md](MULTI_AGENT_DESIGN.md).
 
 ## Run lifecycle
 

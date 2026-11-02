@@ -46,6 +46,17 @@ verifies recovery from advancing telemetry — never from HTTP 200 or "container
 8. The LLM (Phase 4+) never gets shell, Docker socket, credentials, or the ability to inject/rollback/decide recovery. Advisory only.
 9. Never claim injection, recovery, test results, or measurements that were not actually observed.
 
+## Team layer rules (`backend/multiagent_copilot/agent_team/`)
+
+1. Import-guard separation (`tests/test_team_import_guard.py`): `agents.py` never imports `orchestrator`, `safety`,
+   `faults`, `docker_cli`, `subprocess` or `os`; `executor_agent.py` is the only team module that imports `orchestrator`
+   and `safety`, and never imports `ai`, `agents`, `httpx`, `requests` or an Ollama client; `pipeline.py` imports only
+   `agents`, `executor_agent` and `trace`; `__init__.py` imports nothing.
+2. No skipped approval: nothing executes without an `ApprovalRecord` from a named human. `mcop team run` is
+   non-interactive only when both `--experiment` and `--approved-by` are given; never add a flag that skips the gate.
+3. The team layer wraps existing code and must not change the behaviour of safety, orchestrator, faults, observer,
+   planner, scoring or findings. Refusals are recorded with the controller's reason; experiments are never retried.
+
 ## Engineering conventions
 
 - Python 3.13, typed (dataclasses/pydantic), small modules. Docker is driven via the `docker` CLI through a single
