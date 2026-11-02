@@ -216,14 +216,15 @@ def test_insights_failure_never_breaks_the_controls(env, monkeypatch):
 def test_page_picks_one_catalogue_id_and_a_typed_name():
     import re
     html = (api_mod._STATIC).read_text(encoding="utf-8")
-    for el in ('id="score"', 'id="summary"', 'id="recent"', 'id="plan"', 'id="findings"', 'id="pick"', 'id="approver"',
+    for el in ('id="score"', 'id="summary"', 'id="recent"', 'id="findings"', 'id="pick"', 'id="approver"',
                "/api/proposals", "/api/insights?source="):
         assert el in html
     # the only POSTs remain the three controls; the run body carries exactly the id and the typed name
     assert sorted(set(re.findall(r'post\("(/api/[a-z]+)"', html))) == ["/api/kill", "/api/reset", "/api/run"]
     assert 'post("/api/run",{experiment_id:p.experiment_id,approved_by:name},"Start")' in html
     assert "dashboard-operator" not in html
-    assert '<span class="cmd">' in html                      # the insights planner card stays text only
+    # the read-only "Next experiments" planner panel was removed; proposals live only in Controls (still via the API)
+    assert 'id="plan"' not in html and "Next experiments" not in html
 
 
 def test_proposals_failure_never_blocks_a_run(env, monkeypatch):
@@ -329,3 +330,4 @@ def test_dashboard_has_the_agent_trace_panel(env):
 def test_committed_team_session_evidence_is_served(env):
     d = env["a"].get("/api/team/sessions?source=committed").json()
     assert d["source"] == "committed" and any(s["outcome"] for s in d["sessions"])
+

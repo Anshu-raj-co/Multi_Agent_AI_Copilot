@@ -45,7 +45,9 @@ svg text{fill:var(--fg);font-family:inherit}
 .seg button[aria-pressed="true"]{background:var(--accent);color:#fff}
 .bars{display:grid;grid-template-columns:auto 1fr auto;gap:6px 10px;align-items:center;font-size:13.5px;margin-top:10px}
 .bar{height:10px;border-radius:5px;background:var(--grid);overflow:hidden}.bar i{display:block;height:100%;background:var(--accent)}
-.plan li,.find li{margin:6px 0}.plan ol,.find ol{padding-left:20px;margin:6px 0}
+.fgrid{list-style:none;padding:0;margin:8px 0 0;display:grid;grid-template-columns:repeat(auto-fill,minmax(min(320px,100%),1fr));gap:10px}
+.fgrid>li{border:1px solid var(--line);border-radius:10px;padding:8px 10px;min-width:0;overflow-wrap:anywhere}
+.fgrid .runs{margin-top:4px}.fgrid details summary{cursor:pointer;color:var(--accent)}
 .small{font-size:12.5px;color:var(--muted)}
 .lv{font-size:11px;font-weight:700;text-transform:uppercase;border-radius:6px;padding:1px 6px;border:1px solid}
 .lv.high{color:var(--bad);border-color:var(--bad)}.lv.medium{color:var(--warn);border-color:var(--warn)}
@@ -53,7 +55,6 @@ svg text{fill:var(--fg);font-family:inherit}
 .pick li.sel{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}.pick label{display:flex;gap:8px;align-items:baseline;cursor:pointer}
 .pick ul{margin:4px 0 0 18px;padding:0}.pick .one{display:flex;flex-wrap:wrap;gap:2px 8px;align-items:baseline;min-width:0}
 .pick details{margin:4px 0 0 24px}.pick summary{cursor:pointer;font-size:12.5px;color:var(--muted)}.pick details .small{margin-top:4px}input[type=text]{font:inherit;padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--fg);min-width:0;width:100%;box-sizing:border-box}
-.cmd{font:12px/1.4 ui-monospace,Consolas,monospace;background:var(--chipbg);border:1px solid var(--line);border-radius:6px;padding:3px 6px;display:inline-block;overflow-wrap:anywhere}
 #recent td:first-child{width:auto}
 #recent .mono{white-space:nowrap;overflow-wrap:normal}
 .trace{list-style:none;padding:0;margin:8px 0}.trace li{border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin:6px 0;overflow-wrap:anywhere;min-width:0}
@@ -121,12 +122,7 @@ svg text{fill:var(--fg);font-family:inherit}
     <div class="small" style="margin-top:8px">Formula: docs/SCORING.md. Partial runs (fault window cut short) and operator/tool stops are not in the medians.</div></div>
 </div>
 <div class="card"><div class="k" style="margin-bottom:6px">Recent runs</div><div style="overflow-x:auto"><table id="recent"></table></div></div>
-<div class="row" style="margin-top:14px">
-  <div class="card plan"><div class="k">Next experiments · rule-based planner (proposals only)</div>
-    <div class="small" style="margin-top:4px">Read-only view for the selected evidence source. To run one, pick it in Controls and approve it with your name.</div>
-    <ol id="plan"></ol></div>
-  <div class="card find"><div class="k">Findings (most severe first)</div><ol id="findings"></ol></div>
-</div>
+<div class="card find"><div class="k">Findings (most severe first)</div><ol class="fgrid" id="findings"></ol></div>
 <p style="font-size:12px;color:var(--muted)">All values come from the rFMS API or recorded run files. Missing values show "not recorded".
 Every button goes through the same safety controller as the CLI.</p>
 </main>
@@ -258,7 +254,7 @@ $("bStart").onclick=function(){var p=PROPS.find(function(x){return x.experiment_
 $("bKill").onclick=function(){post("/api/kill",null,"Kill");};
 $("bReset").onclick=function(){if(confirm("Reset the safety latch? Only do this after checking the stack is healthy.")) post("/api/reset",{confirm:true},"Reset");};
 
-// ---- insights (read-only): scores, planner proposals, findings ----
+// ---- insights (read-only): scores, recent runs, findings ----
 var SRC="local", lastSeenRun=null;
 try{SRC=localStorage.getItem("mcop-src")||"local";}catch(e){}
 function fmt(c){return c&&c.measured?Number(c.score).toFixed(2):null;}
@@ -284,10 +280,11 @@ function renderInsights(d){
   $("recent").innerHTML="<tr><td class=small>run</td><td class=small>type</td><td class=small>state</td><td class=small>score</td></tr>"+d.recent.map(function(r){
     var sc=r.scorable?r.score.toFixed(1)+(r.partial?' <span class="small">partial</span>':''):'<span class="na">'+esc(r.reason)+'</span>';
     return '<tr><td class="mono">'+esc(r.run_id)+'</td><td>'+esc(r.experiment_type)+'</td><td>'+esc(r.state)+'</td><td>'+sc+(r.note?'<div class="small">note: '+esc(r.note)+'</div>':'')+'</td></tr>';}).join("");
-  $("plan").innerHTML=d.plan.map(function(e){return '<li><b>'+esc(e.experiment_type)+'</b> on <span class="mono">'+esc(e.target)+'</span> · priority '+e.priority.toFixed(3)+
-    ' <span class="small">(information '+e.information.toFixed(3)+', risk '+e.risk.toFixed(3)+')</span><div class="small">'+e.rationale.map(esc).join("; ")+'</div><span class="cmd">'+esc(e.command)+'</span></li>';}).join("");
-  $("findings").innerHTML=d.findings.length?d.findings.map(function(f){return '<li><span class="lv '+f.level+'">'+f.level+'</span> <b>'+esc(f.title)+'</b> · '+esc(f.experiment_type)+
-    '<div class="small">'+f.runs.map(function(h){return '<span class="mono">'+esc(h.run)+'</span>: '+esc(h.detail)+(h.note?' <i>(note: '+esc(h.note)+')</i>':'');}).join("<br>")+'</div></li>';}).join(""):'<li>No rule fired.</li>';
+  function runLine(h){return '<span class="mono">'+esc(h.run)+'</span>: '+esc(h.detail)+(h.note?' <i>(note: '+esc(h.note)+')</i>':'');}
+  $("findings").innerHTML=d.findings.length?d.findings.map(function(f){var first=f.runs.slice(0,3), more=f.runs.slice(3);
+    return '<li><span class="lv '+f.level+'">'+f.level+'</span> <b>'+esc(f.title)+'</b> · '+esc(f.experiment_type)+
+    '<div class="small runs">'+first.map(runLine).join("<br>")+
+    (more.length?'<details><summary>+'+more.length+' more</summary>'+more.map(runLine).join("<br>")+'</details>':'')+'</div></li>';}).join(""):'<li>No rule fired.</li>';
 }
 function loadInsights(){
   ["srcLocal","srcRecorded"].forEach(function(id){$(id).setAttribute("aria-pressed",String($(id).dataset.src===SRC));});
