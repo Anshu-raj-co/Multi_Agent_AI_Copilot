@@ -1,5 +1,13 @@
 # Handoff
 
+## Multi-Agent Copilot (branch `feat/copilot-rename`, local commits since tag `pre-copilot-rename`; not pushed)
+- Rename done (package `multiagent_copilot`, CLI `mcop`, label `multiagent-copilot`, env `MCOP_`; D-024). Agent team in
+  `backend/multiagent_copilot/agent_team/` + `mcop team run|sessions|show`, read-only `/api/team/sessions[/latest]`, dashboard
+  Agent trace panel (D-025, `docs/MULTI_AGENT_DESIGN.md`). One real session: `reports/team-sessions/20261102T151952Z-8b5eaa` (`--no-ai`).
+- Verified 2026-11-02 on Windows: unit 518 passed, 3 skipped; `MCOP_LIVE=1` 521 passed; `demo-day1.sh` exit 0; stack 8/8 labelled.
+- Fixes: `discover._host_path` on Windows; kill switch wrote EMERGENCY_STOP outside the repo for paths with spaces.
+- Next: push when the owner asks; a team session with `--ai` (Ollama running) is still UNVERIFIED; fresh clone of the new repo UNVERIFIED.
+
 _Updated: 2026-10-11 (feat/data-quality; earlier: feat/scene-3d M3/M4). **Code frozen for the demo** (lead's instruction). `main`: PRs #7 and #22–#30 merged (PR #29
 approved by the lead) + the final count update. PR #8 still open (older)._
 
