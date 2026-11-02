@@ -75,7 +75,7 @@ def test_plan_is_deterministic_and_renders():
     assert plan(CATALOG, DEP_MAP, runs) == plan(copy.deepcopy(CATALOG), DEP_MAP, list(runs))
     text = render_text(plan(CATALOG, DEP_MAP, runs))
     assert text.startswith("Experiment plan (rule-based; nothing is executed")
-    assert "$ rp run --type dependency_failure --target influxDB" in text
+    assert "$ mcop run --type dependency_failure --target influxDB" in text
 
 
 def _rules(runs):

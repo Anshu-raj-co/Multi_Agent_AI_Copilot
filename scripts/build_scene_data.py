@@ -316,7 +316,7 @@ def build() -> dict:
                              "The Ollama URL must be loopback"]],
                          "roles": [{"text": q, "src": src("docs/AI_LAYER.md", line_of("docs/AI_LAYER.md", q))} for q in [
                              "**AI Planner**: proposes an order for the allowlisted experiments, with a technical rationale.",
-                             "**AI Analyst**: maps each finding (`rp findings`) to a root cause and a ranked remediation playbook (verify, mitigate, fix)."]],
+                             "**AI Analyst**: maps each finding (`mcop findings`) to a root cause and a ranked remediation playbook (verify, mitigate, fix)."]],
                          "validator": [{"text": q, "src": src("docs/AI_LAYER.md", line_of("docs/AI_LAYER.md", q))} for q in [
                              "Planner answer is an exact permutation of allowlisted candidate ids",
                              "Analyst item: known finding id, cites only that finding's runs, valid confidence, 1–8 playbook steps of kind verify/mitigate/fix",
@@ -324,7 +324,7 @@ def build() -> dict:
                          "model_14b": [{"text": q, "src": src("docs/AI_LAYER.md", line_of("docs/AI_LAYER.md", q))} for q in [
                              "### `qwen2.5-coder:14b` (2026-10-11, same Mac: Apple Mac16,12, 16 GB, Ollama 0.40.2, 21 committed runs)",
                              "- **Planner:** valid permutation, same order as the rules; about 4 min for the planner call alone.",
-                             "- **Analyst:** timed out at 120 s and again at 300 s (an 8 min 22 s `rp advise` call). Both times every finding fell",
+                             "- **Analyst:** timed out at 120 s and again at 300 s (an 8 min 22 s `mcop advise` call). Both times every finding fell",
                              "too slow for the analyst prompt, so `config/ai.json` stays on `qwen2.5:7b`."]]},
         "findings": findings,
         "scores": {"path": sc["path"], "summary": sc["summary"]},

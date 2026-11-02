@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Emergency stop that does NOT depend on the ResiliencePilot backend being alive.
+# Emergency stop that does NOT depend on the Multi-Agent Copilot backend being alive.
 #  1. writes the EMERGENCY_STOP file -> a running experiment rolls back at its next poll and new runs are refused
 #  2. directly restores every allowlisted target in the sandbox project: unpause if paused, start if stopped
 # Exit code 0 only if every allowlisted target is verified unpaused afterwards.

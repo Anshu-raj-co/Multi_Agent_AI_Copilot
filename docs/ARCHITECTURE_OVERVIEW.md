@@ -1,4 +1,4 @@
-# ResiliencePilot SDV · Architecture overview
+# Multi-Agent Copilot · Architecture overview
 
 **One sentence:** a local tool that injects bounded, reversible faults into the Eclipse SDV Fleet Management
 Blueprint, measures what an API client actually sees, and only declares recovery when vehicle telemetry is advancing
@@ -6,7 +6,7 @@ again. Detailed design: `docs/ARCHITECTURE.md`.
 
 ```mermaid
 flowchart TB
-  subgraph sut["System under test: Docker Compose project resiliencepilot-sdv (8 containers, local only)"]
+  subgraph sut["System under test: Docker Compose project multiagent-copilot (8 containers, local only)"]
     direction LR
     CSV[csv-provider] --> DB[(KUKSA databroker)] --> FWD[fms-forwarder] --> ZR[Zenoh router] --> CON[fms-consumer] --> IDB[(InfluxDB)]
     SRV[fms-server<br/>rFMS API] --> IDB
@@ -25,7 +25,7 @@ flowchart TB
     SCO[Score] --- PLN[Planner] --- FND[Findings] --- DIS[Discovery]
     AI[AI advisor<br/>local Ollama, grounded,<br/>rule-based fallback]
   end
-  UI[CLI rp · dashboard :8765] --> SC
+  UI[CLI mcop · dashboard :8765] --> SC
   OBS -->|read only| SRV
   ORC --> SC & OBS & GR & FA
   WD --> FA
@@ -46,7 +46,7 @@ flowchart TB
 | Evidence | `evidence.py` | One JSON record per run: every poll, timeline, rollback, recovery, data gap, guardrail state |
 | Analyse | `scoring.py`, `planner.py`, `findings.py`, `discover.py`, `insights.py` | Resilience Score, experiment ranking, findings report, dependency discovery; all read-only |
 | Advise | `ai.py` | Local LLM planner + analyst; isolated imports, loopback-only, validated and grounded, rule-based fallback |
-| Interfaces | `__main__.py` (`rp`), `api.py` + `static/dashboard.html`, `scripts/*.sh` | CLI, localhost dashboard, stack scripts, kill switch |
+| Interfaces | `__main__.py` (`mcop`), `api.py` + `static/dashboard.html`, `scripts/*.sh` | CLI, localhost dashboard, stack scripts, kill switch |
 
 ## Run lifecycle
 

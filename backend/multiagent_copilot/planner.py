@@ -10,7 +10,7 @@ risk (0-1)        = 0.5 x dependents / max dependents        containers next to 
                   + 0.2 x mechanism severity                 pause 0.3, stop of a publisher 0.7, stop of a shared store 1.0
 
 Every candidate comes from config/experiments.json (the allowlist); the planner cannot propose anything else, and
-every plan entry needs a human approver before `rp run` will accept it.
+every plan entry needs a human approver before `mcop run` will accept it.
 """
 from __future__ import annotations
 
@@ -91,7 +91,7 @@ def plan(catalog: dict, dep_map: dict, runs: list[dict], max_duration_s: int = 3
                 "evidence": {"runs": n, "full_window_runs": len(full), "latched": latched, "unresolved": unresolved,
                              "untested_hypotheses": untested, "dependents": deps},
                 "suggested_duration_s": duration, "rationale": rationale, "requires_human_approval": True,
-                "command": f"rp run --type {etype} --target {target} --duration {duration} --approved-by <you>",
+                "command": f"mcop run --type {etype} --target {target} --duration {duration} --approved-by <you>",
             })
     entries.sort(key=lambda e: (-e["priority"], e["experiment_type"], e["target"]))
     for i, e in enumerate(entries, 1):

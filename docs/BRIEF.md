@@ -1,13 +1,13 @@
-# ResiliencePilot SDV — Original Brief (verbatim)
+# Multi-Agent Copilot — Original Brief (verbatim)
 
 > Saved verbatim from the engineering lead's kickoff message on 2026-10-10.
 > The **OVERRIDES** section at the bottom takes priority over everything above it.
 
 ---
 
-# RESILIENCEPILOT SDV — MASTER AUTONOMOUS BUILD DIRECTIVE
+# MULTI-AGENT COPILOT — MASTER AUTONOMOUS BUILD DIRECTIVE
 
-You are the principal product architect, senior software engineer, chaos-engineering researcher, AI engineer, DevOps engineer, QA lead, and technical team lead for ResiliencePilot SDV.
+You are the principal product architect, senior software engineer, chaos-engineering researcher, AI engineer, DevOps engineer, QA lead, and technical team lead for Multi-Agent Copilot.
 
 Your mission is to independently take this project from an empty folder to a working, tested, reproducible, hackathon-ready product.
 
@@ -21,7 +21,7 @@ Make reasonable engineering decisions independently, document them, and continue
 
 # 1. PRODUCT VISION
 
-Build ResiliencePilot SDV, a local-first resilience-engineering workbench for a real, publicly available Eclipse Software Defined Vehicle fleet-management application or blueprint.
+Build Multi-Agent Copilot, a local-first resilience-engineering workbench for a real, publicly available Eclipse Software Defined Vehicle fleet-management application or blueprint.
 
 ## The problem
 
@@ -29,7 +29,7 @@ A service can appear healthy while its data is stale or incomplete. For example,
 
 Traditional health checks may report success while the actual information is no longer useful.
 
-ResiliencePilot must detect this difference using real observations, perform controlled failure experiments, verify recovery, and generate evidence-backed findings.
+Multi-Agent Copilot must detect this difference using real observations, perform controlled failure experiments, verify recovery, and generate evidence-backed findings.
 
 ## Our differentiator
 
@@ -364,7 +364,7 @@ If the directory is empty and no repository exists:
 - Create a suitable .gitignore.
 - Keep secrets, environment files, caches, local environments, generated artifacts, and sensitive logs out of Git.
 - Check GitHub CLI authentication.
-- If authenticated and permitted, create a private repository named resiliencepilot-sdv.
+- If authenticated and permitted, create a private repository named multiagent-copilot.
 - Commit the initial project structure and instructions.
 - Push the initial branch.
 
@@ -470,7 +470,7 @@ Continue through every implementation phase without waiting for another prompt f
 
 Prioritize a small, real, end-to-end working system over a large collection of unfinished features.
 
-The objective is a reproducible, tested, evidence-driven ResiliencePilot SDV product that demonstrates hidden telemetry failure detection, controlled resilience experiments, verified recovery, and AI analysis grounded in actual observations.
+The objective is a reproducible, tested, evidence-driven Multi-Agent Copilot product that demonstrates hidden telemetry failure detection, controlled resilience experiments, verified recovery, and AI analysis grounded in actual observations.
 
 BEGIN EXECUTION NOW.
 
@@ -484,6 +484,6 @@ BEGIN EXECUTION NOW.
 4. Time box: if the SDV stack is not running end to end after 60 minutes, stop and tell me what failed. Do not silently switch to a mock.
 5. Do not start the Docker stack until you have written docs/recon.md and told me the memory available from `docker info`.
 6. Checkpointing: commit and push to branch wip/<topic> every 20-30 minutes and update docs/coordination/HANDOFF.md each time. Never leave work uncommitted.
-7. If no GitHub remote exists, run: gh repo create resiliencepilot-sdv --private --source . --push
+7. If no GitHub remote exists, run: gh repo create multiagent-copilot --private --source . --push
 8. End the session with a scripted 2-minute Day 1 demo saved in docs/demo/ (app running, baseline, one safe fault, kill switch, recovery).
 9. Fault-injection claims: if traffic does not truly pass through the proxy, say so and use container stop or provider pause instead.

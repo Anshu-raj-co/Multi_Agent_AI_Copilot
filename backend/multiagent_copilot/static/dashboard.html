@@ -262,7 +262,7 @@ function scoreCard(s){
   $("score").innerHTML=h;
 }
 function renderInsights(d){
-  $("insMeta").textContent=d.runs+" run records from "+(d.source==="day2"?"reports/day2 (committed)":"the local evidence store")+". Same rules as rp score / rp plan / rp findings.";
+  $("insMeta").textContent=d.runs+" run records from "+(d.source==="day2"?"reports/day2 (committed)":"the local evidence store")+". Same rules as mcop score / mcop plan / mcop findings.";
   scoreCard(d.latest_scored);
   var rows=Object.keys(d.summary).map(function(t){var v=d.summary[t];return "<tr><td>"+esc(t)+"</td><td>median <b>"+v.median+"</b> · n="+v.n+" · "+v.min+"–"+v.max+"</td></tr>";});
   $("summary").innerHTML=rows.length?rows.join(""):"<tr><td>full-window runs</td><td>"+NR+"</td></tr>";

@@ -4,11 +4,11 @@ _Updated: 2026-10-11 (feat/data-quality; earlier: feat/scene-3d M3/M4). **Code f
 approved by the lead) + the final count update. PR #8 still open (older)._
 
 ## Data-quality gate + submission deck: branch `feat/data-quality` (PR open; main is code-frozen, merge only with the lead's approval)
-- Scope (instructor task): new isolated package `backend/resiliencepilot/dq/` (schema, normalizer, batch_engine, store,
-  generator, report, cli; `python -m resiliencepilot.dq generate|ingest|show-quarantine|report`), new
+- Scope (instructor task): new isolated package `backend/multiagent_copilot/dq/` (schema, normalizer, batch_engine, store,
+  generator, report, cli; `python -m multiagent_copilot.dq generate|ingest|show-quarantine|report`), new
   `backend/tests/test_dq.py` (79 tests), `scripts/make_ppt.py` -> `docs/submission/ResiliencePilot.pptx` (6 slides),
   `docs/DATA_QUALITY.md`, `docs/demo/VIDEO_SCRIPT.md` (2 min, 20 s DQ section), sample `docs/dq/report.html`.
-  `backend/pyproject.toml`: package `resiliencepilot.dq`, `tzdata` on Windows, extra `slides` (python-pptx).
+  `backend/pyproject.toml`: package `multiagent_copilot.dq`, `tzdata` on Windows, extra `slides` (python-pptx).
   No change to safety/observer/telemetry/orchestrator or to existing tests.
 - Logistics fields are synthetic (documented); the gate is not wired into the experiment loop or the blueprint path.
 - Verified: `pytest -q` 396 passed, 11 skipped (317 existing + 79 new) on macOS; deck built and checked
@@ -76,13 +76,13 @@ approved by the lead) + the final count update. PR #8 still open (older)._
   `reports/day2/README.md` (last section). Emergency stop from the dashboard (17:12 UTC) was cleared by a logged reset
   first, with the user's approval.
 - **Phase E dashboard:** `GET /api/insights?source=local|day2` (read-only; fixed names, never a path; built by
-  `insights.py` from the same functions as `rp score/plan/findings`; planner uses the server's own catalog). Page:
+  `insights.py` from the same functions as `mcop score/plan/findings`; planner uses the server's own catalog). Page:
   latest score with component bars + silent penalty, per-type medians, recent runs, planner proposals (text only, no
   button), findings with annotations; score refreshes when a run finishes. Screenshot `docs/demo/dashboard-day2.png`.
   Verified at 1200 px and 500 px (headless Chrome cannot render narrower; no page-level horizontal scroll at 500).
 - Tests: 266 unit pass on macOS (+9 API insights).
 - PR #7: decision renumbered to D-021 (`fc27d02`); still needs `main` merged in (DECISIONS.md conflict).
-- Waiting: `qwen2.5-coder:14b` download (user); then set `model` in `config/ai.json` and rerun `rp advise --dir reports/day2`.
+- Waiting: `qwen2.5-coder:14b` download (user); then set `model` in `config/ai.json` and rerun `mcop advise --dir reports/day2`.
 
 ## Day 2 milestone 3: response envelope + telemetry-checked reset (branch `feat/day2-envelope-and-reset`, PR open)
 - D-017 envelope (dependency_failure: 5 s timeout, 4.5 s latency cap, fault window only); D-018 reset needs 3 fresh,
@@ -125,20 +125,20 @@ approved by the lead) + the final count update. PR #8 still open (older)._
   its write fails; reorder `reset()` so files are deleted before writing the unlatched state.
 
 ## Day-1 explainer (branch `feat/day1-explainer`, PR pending the lead's approval)
-- `rp report [--run ID] [--out FILE]` → `reports/day1/explainer.html`: a standalone offline HTML page built only from
+- `mcop report [--run ID] [--out FILE]` → `reports/day1/explainer.html`: a standalone offline HTML page built only from
   `backend/data/runs/` (falling back to `reports/day1/`), the baselines in `reports/day1/` and `config/dependency_map.json`.
-- Code: `backend/resiliencepilot/explainer.py` (read-only). No changes to safety, orchestrator or fault code.
+- Code: `backend/multiagent_copilot/explainer.py` (read-only). No changes to safety, orchestrator or fault code.
   Tests: `backend/tests/test_explainer.py`.
 - Verified by rendering in headless Edge: light and dark (screenshots inspected), and phone width measured in a 390 px iframe (scrollWidth 375 ≤ 390, no page-level horizontal scroll; diagram and chart scroll inside their boxes). Screenshot: `docs/demo/explainer-chart.png`.
 - Regenerate after new runs; it picks the latest full-length COMPLETED run by default.
 
 ## Live dashboard (branch `feat/day1-dashboard`, in progress; PR pending the lead's approval)
-- `rp serve [--port 8765]` serves the local API and dashboard on http://127.0.0.1:8765/ (bound to localhost only).
-- `backend/resiliencepilot/api.py` calls only the CLI's own paths: `ExperimentRunner.start`, `SafetyController.emergency_stop`
+- `mcop serve [--port 8765]` serves the local API and dashboard on http://127.0.0.1:8765/ (bound to localhost only).
+- `backend/multiagent_copilot/api.py` calls only the CLI's own paths: `ExperimentRunner.start`, `SafetyController.emergency_stop`
   and `SafetyController.reset`. `POST /api/run` takes no parameters (fixed template, 12 s, approver `dashboard-operator`).
   Responses: 409 busy, 423 latched or stop engaged, 422 if any parameter is sent. Reset needs `{"confirm": true}`
   and is allowed only when blocked.
-- Page: `backend/resiliencepilot/static/dashboard.html`. Tests: `backend/tests/test_api.py`.
+- Page: `backend/multiagent_copilot/static/dashboard.html`. Tests: `backend/tests/test_api.py`.
 - Evidence-store fix (`evidence.py`): retry `os.replace` on Windows PermissionError. A concurrent reader (the
   dashboard) made the final run save fail with "Access is denied". Safety/orchestrator/fault code is unchanged.
 - Evidence store also retries reads (`load_run`) on Windows PermissionError.
@@ -146,7 +146,7 @@ approved by the lead) + the final count update. PR #8 still open (older)._
   `run.lock` / `active_fault.json` deletes and `safety_state.json` replaces fail with PermissionError when another
   thread or process has the file open. Seen as: a stale run.lock (stuck BUSY) and a spurious LATCHED_UNSAFE after a
   verified rollback. Both fail safe. The dashboard avoids it in-process: it reads status under `ctl._lock` and opens
-  no controller files while its own run is active (40/40 clean API-suite runs). A CLI `rp status` in another
+  no controller files while its own run is active (40/40 clean API-suite runs). A CLI `mcop status` in another
   terminal at the exact moment can still trigger it. Proposed fix: retry-on-PermissionError in `_atomic_write` and
   the unlink calls.
 - Live end-to-end run from the page passed (run `20261010T102525Z-e0bb59`); see the PR description.
@@ -162,11 +162,11 @@ approved by the lead) + the final count update. PR #8 still open (older)._
 | What | Where |
 |---|---|
 | Dependency map (data) | `config/dependency_map.json` (edges, protocols, file:line evidence, confidence); prose in `docs/recon.md` §3–4 |
-| Show it | `python -m resiliencepilot deps` (adds a live shared-network check) |
+| Show it | `python -m multiagent_copilot deps` (adds a live shared-network check) |
 | Baselines (all) | `backend/data/baselines/*.json` (gitignored, local) |
 | Baselines (committed) | `reports/day1/baseline-20261010T094007Z.json` (reference, with `load_conditions`), `reports/day1/baseline-20261010T084740Z.json` (first, no load conditions) |
-| Show one | `python -m resiliencepilot show-baseline [FILE]` |
-| Run records | `backend/data/runs/` (local); 12 real runs copied to `reports/day1/`; `python -m resiliencepilot show <run_id>` draws the impact chart |
+| Show one | `python -m multiagent_copilot show-baseline [FILE]` |
+| Run records | `backend/data/runs/` (local); 12 real runs copied to `reports/day1/`; `python -m multiagent_copilot show <run_id>` draws the impact chart |
 | Judge report | `docs/demo/DAY1_REPORT.md` (every number taken from the files above) |
 
 ## How to resume
@@ -177,7 +177,7 @@ git submodule update --init                    # fresh clone only (blueprint pin
 cd backend && python -m venv .venv && .venv/Scripts/python -m pip install -e ".[test]"
 .venv/Scripts/python -m pytest -q              # expect 49 passed
 MCOP_LIVE=1 .venv/Scripts/python -m pytest -q    # expect 52 passed
-.venv/Scripts/python -m resiliencepilot status # must be READY; if LATCHED_UNSAFE read the reason, check stack, then reset
+.venv/Scripts/python -m multiagent_copilot status # must be READY; if LATCHED_UNSAFE read the reason, check stack, then reset
 ```
 If `docker info` says "Docker Desktop is unable to start": quit Docker Desktop fully and relaunch it.
 

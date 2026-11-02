@@ -299,7 +299,7 @@ def create_app(cfg: SafetyConfig, catalog: dict[str, ExperimentSpec], ctl: Safet
                                          "approved_at": utcnow().isoformat(), "request": req, "proposal": proposal,
                                          "model_calls": [], "note": "Dashboard proposals come from the rule-based "
                                          "planner; no model is called when a run is started. Model calls made by "
-                                         "`rp advise` are logged in data/ai_calls/."})
+                                         "`mcop advise` are logged in data/ai_calls/."})
         except Exception:  # noqa: BLE001 - evidence for context only; the run is already under the safety controller
             pass
         return {"run_id": run_id, "request": req}

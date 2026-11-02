@@ -29,10 +29,10 @@ Status meanings:
 
 | Part | Status | Evidence |
 |---|---|---|
-| Ranking uses the dependency map | DONE (rule-based) | `backend/resiliencepilot/planner.py` (`_dependents(dep_map)`); `config/dependency_map.json`; `test_never_run_shared_store_ranks_first_with_exact_factors`, `test_candidates_come_only_from_the_allowlist` |
+| Ranking uses the dependency map | DONE (rule-based) | `backend/multiagent_copilot/planner.py` (`_dependents(dep_map)`); `config/dependency_map.json`; `test_never_run_shared_store_ranks_first_with_exact_factors`, `test_candidates_come_only_from_the_allowlist` |
 | A reason for each entry | DONE | Rule-based: `GET /api/proposals` (`test_proposals_are_the_planner_ranking_with_reasons_and_predictions`), `reports/day2/findings.md`. AI: `reports/day2/ai_advice_qwen2.5-7b-20261010T233726Z.md` |
 | The AI ranks | DONE, limited | The AI may only return an exact permutation of the rule-based candidates (`validate_plan`); `test_valid_reorder_is_accepted_but_commands_come_from_the_rule_based_plan`, `test_invalid_plans_fall_back_to_the_rule_based_order`. In both recorded real calls the AI order equalled the rule order |
-| Selection | **Human, by design** | The dashboard picker lists the ranked proposals; the user selects one `experiment_id` and approves it with a typed name (PR #25; `test_run_accepts_only_a_catalogue_id_and_a_typed_name`). Nothing selects automatically. The dashboard ranking is rule-based; AI ranking is CLI only (`rp advise`) |
+| Selection | **Human, by design** | The dashboard picker lists the ranked proposals; the user selects one `experiment_id` and approves it with a typed name (PR #25; `test_run_accepts_only_a_catalogue_id_and_a_typed_name`). Nothing selects automatically. The dashboard ranking is rule-based; AI ranking is CLI only (`mcop advise`) |
 
 ### 2. 3+ failure types with errors, slowdowns and recovery time recorded: DONE
 
@@ -54,7 +54,7 @@ Note: no failure type **injects** latency (no network-degradation experiment; D-
 | Explains findings | PARTIAL | AI analyst (`ai.py` `ai_analyse`). In both recorded real calls (`reports/day2/ai_advice_qwen2.5-7b.md`; logged call `reports/day2/ai_calls/20261010T233726Z.json`), **1 of 7** explanations passed validation; 6 were replaced by rule-based text |
 | Ranks by severity | DONE, deterministic (not AI) | `findings.py` fixed rule order; `reports/day2/findings.md`; `test_findings_rules_fire_on_their_evidence`. Stated in README "What the AI does and does not do" (PR #24) |
 | Recommends fixes | DONE, mostly rule-based | Playbooks per finding in the advice reports; 6 of 7 from the rule-based knowledge base (`ai.py` `KB`) |
-| Resilience score | DONE, deterministic (not AI) | `scoring.py`, `rp score`, `reports/day2/scores.json`; `test_scoring.py` |
+| Resilience score | DONE, deterministic (not AI) | `scoring.py`, `mcop score`, `reports/day2/scores.json`; `test_scoring.py` |
 | Formula documented | DONE | `docs/SCORING.md` |
 
 ### 4. Automatic stop on error rate, latency and blast radius, each tested live: DONE
@@ -67,18 +67,18 @@ Note: no failure type **injects** latency (no network-degradation experiment; D-
 
 Demo profiles (merged in PR #27) are tighten-only (enforced in `config.py`; `test_profile_experiment_overrides_only_tighten`,
 `test_profile_guardrail_overrides_only_tighten`) and CLI-only (`test_dashboard_refuses_to_run_with_a_config_profile`,
-`test_serve_with_a_profile_set_fails_before_binding`; also checked live: `rp serve` with a profile set raises and never
+`test_serve_with_a_profile_set_fails_before_binding`; also checked live: `mcop serve` with a profile set raises and never
 binds port 8765). PR #27's `orchestrator.py` change is only the added `config_profile` field.
 
 ### 5. Semi-automatic dependency mapping: DONE
 
-Manual map with evidence (`config/dependency_map.json`), automatic discovery (`rp discover`, `discover.py`), diff
+Manual map with evidence (`config/dependency_map.json`), automatic discovery (`mcop discover`, `discover.py`), diff
 (`reports/day2/discovery.json`), 18 tests in `test_discover.py`. Reproduced live on 2026-10-11: 8 containers, 8
 edges; 6 matched, 1 direction differs, 1 discovered only.
 
 ### 6. Kill switch: DONE
 
-`scripts/kill-switch.sh` (works without the backend; now executable in git, PR #7), `rp stop`, dashboard Kill.
+`scripts/kill-switch.sh` (works without the backend; now executable in git, PR #7), `mcop stop`, dashboard Kill.
 Tests: `test_kill_switch_file_is_honoured`, `test_emergency_stop_rolls_back_early_and_blocks_new_runs_until_reset`,
 `test_kill_from_second_client_rolls_back_and_blocks`. Live: `20261010T084814Z-b17ca6`, `20261010T182400Z-6f6559`, and
 the fresh-clone demo on 2026-10-11 (ABORTED by kill switch, recovery verified).
@@ -110,9 +110,9 @@ Fresh clone of the PR #23 branch into a new folder on 2026-10-11, after deleting
 | `./scripts/stack-status.sh` | 8/8 running, exit 0; after `stack-down`: exit 1 naming all 8 services |
 | venv + `pip install -e ".[test]"` | OK |
 | `pytest -q` / `MCOP_LIVE=1 pytest tests/test_live.py` | 270 passed / 3 passed (test count of that branch at the time) |
-| `rp status` | READY |
+| `mcop status` | READY |
 | `./scripts/demo-day1.sh` | exit 0 in 42 s: stall COMPLETED (stale at 5.18 s with HTTP 200, recovery 3.51 s); kill-switch run ABORTED with recovery verified; next run refused until reset |
-| `rp serve` | HTTP 200 |
+| `mcop serve` | HTTP 200 |
 
 All four earlier failures are fixed: scripts executable (PR #7), arm64 pull (PR #23), port 55555 conflict (port
 55557, PR #7), `stack-status.sh` exit code (PR #23). **Windows was not re-tested** after these changes.
@@ -123,7 +123,7 @@ All four earlier failures are fixed: scripts executable (PR #7), arm64 pull (PR 
 |---|---|
 | Provider and model | Ollama, loopback only; `qwen2.5:7b`, temperature 0, seed 42, timeout 240 s (`config/ai.json`) |
 | Real model calls on record | `reports/day2/ai_advice_qwen2.5-7b.md` (earlier, unlogged) and **`reports/day2/ai_calls/20261010T233726Z.json`** (2026-10-10 23:37 UTC, fully logged) with `reports/day2/ai_advice_qwen2.5-7b-20261010T233726Z.md`. Experiment run records contain no model calls; dashboard runs record `model_calls: []` in their proposal file |
-| Where prompts and responses are logged | **Every call** (system prompt, user prompt, raw HTTP response, model, options, error, validation result) → `data/ai_calls/<timestamp>.json` by `rp advise` (PR #25). Tests: `test_every_model_call_is_logged_with_prompts_raw_response_and_validation`, `test_failed_and_rejected_calls_are_logged_too` |
+| Where prompts and responses are logged | **Every call** (system prompt, user prompt, raw HTTP response, model, options, error, validation result) → `data/ai_calls/<timestamp>.json` by `mcop advise` (PR #25). Tests: `test_every_model_call_is_logged_with_prompts_raw_response_and_validation`, `test_failed_and_rejected_calls_are_logged_too` |
 
 ## The DNS claim: resolved (PR #24)
 
@@ -135,7 +135,7 @@ committed. The AI grounding check rejects unhedged name-resolution claims (`test
 ## Personal contact details and secrets: resolved in files (PR #26)
 
 No local home paths and no email addresses remain in tracked files (`git grep`, excluding test fixtures and noreply
-addresses). `rp score` and `rp show-baseline` now write repo-relative paths. `docs/TEAM_FORM_INFO.md` has no contact
+addresses). `mcop score` and `mcop show-baseline` now write repo-relative paths. `docs/TEAM_FORM_INFO.md` has no contact
 fields. **Still present:** two personal emails in old git commit metadata. Removing them would need a history rewrite
 and force-push, which the repo rules forbid. Upstream demo credentials in the blueprint submodule are public sandbox
 defaults (`CLAUDE.md:61`).

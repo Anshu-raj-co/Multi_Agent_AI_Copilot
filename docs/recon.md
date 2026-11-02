@@ -99,8 +99,8 @@ forwarder → zenoh → consumer → InfluxDB chain breaks.
 ## 6. Required local adaptations (no upstream files modified)
 
 1. Networks `fms-backend`/`fms-vehicle` declare `driver: overlay` → requires Swarm. Override to `bridge` in
-   `config/compose/resiliencepilot.override.yaml`. [V need; fix to be verified on first `up`]
-2. Compose project name pinned to `resiliencepilot-sdv` so the safety controller can verify container labels.
+   `config/compose/multiagent-copilot.override.yaml`. [V need; fix to be verified on first `up`]
+2. Compose project name pinned to `multiagent-copilot` so the safety controller can verify container labels.
 3. Start only the 8 telemetry-path services (+grafana); skip `fleet-analysis-backend`.
 
 ## 7. Open questions

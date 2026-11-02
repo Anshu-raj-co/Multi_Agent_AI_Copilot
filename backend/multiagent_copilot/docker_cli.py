@@ -100,7 +100,7 @@ class DockerCLI:
 
     # ---- read-only helpers for evidence/display (never used by fault logic) ----
     def inspect_raw(self, ids: list[str]) -> list[dict]:
-        """Full `docker inspect` JSON for the given container ids (read-only; used by `rp discover`)."""
+        """Full `docker inspect` JSON for the given container ids (read-only; used by `mcop discover`)."""
         for i in ids:
             if not re.fullmatch(r"[0-9a-f]{12,64}", i):
                 raise DockerError(f"refusing invalid container id {i!r}")

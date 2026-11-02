@@ -1,3 +1,5 @@
+> Hackathon submission record under the original name ResiliencePilot SDV.
+
 # Submission form information
 
 Copy-ready answers for the Bosch Hackathon 2026 submission form. Fields marked **[TO FILL]** still need information.

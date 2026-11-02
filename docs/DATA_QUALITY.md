@@ -1,6 +1,6 @@
 # Data Quality Gate
 
-`backend/resiliencepilot/dq/`: a deterministic normalization and quarantine gate for a **synthetic logistics feed**.
+`backend/multiagent_copilot/dq/`: a deterministic normalization and quarantine gate for a **synthetic logistics feed**.
 Tests: `backend/tests/test_dq.py` (79). Sample report from a real run of the gate: `docs/dq/report.html`.
 
 ## Scope and honesty note
@@ -8,7 +8,7 @@ Tests: `backend/tests/test_dq.py` (79). Sample report from a real run of the gat
 - **The logistics fields are synthetic.** The Eclipse SDV Fleet Management Blueprint's rFMS API provides vehicle
   status (VIN, `createdDateTime`, signals), not cargo temperature, quality grade, shelf life or a regional date
   string. We generate those fields (`generate`) to complement the real rFMS telemetry and to show how
-  ResiliencePilot treats dirty multi-region input. The VINs include the blueprint's simulated vehicle VIN.
+  Multi-Agent Copilot treats dirty multi-region input. The VINs include the blueprint's simulated vehicle VIN.
 - The gate is **isolated**. It has its own SQLite store, needs no Docker and no live stack, and does not touch the
   safety controller, observer, orchestrator or the blueprint's InfluxDB path. It is not wired into the experiment loop.
 - "Before storage" means before *its own* store: a record reaches `dq_clean_records` only after it passes every check.
@@ -98,12 +98,12 @@ within a batch or already committed, are quarantined and never resolved by picki
 
 ```bash
 cd backend
-.venv/bin/python -m resiliencepilot.dq generate --count 100 --error-count 2 --out ../reports/generated/feed.json
-.venv/bin/python -m resiliencepilot.dq ingest --file ../reports/generated/feed.json        # exit 0
-.venv/bin/python -m resiliencepilot.dq generate --count 100 --error-count 10 --seed 7 --out ../reports/generated/feed10.json
-.venv/bin/python -m resiliencepilot.dq ingest --file ../reports/generated/feed10.json      # exit 2: rolled back
-.venv/bin/python -m resiliencepilot.dq show-quarantine
-.venv/bin/python -m resiliencepilot.dq report --out ../docs/dq/report.html
+.venv/bin/python -m multiagent_copilot.dq generate --count 100 --error-count 2 --out ../reports/generated/feed.json
+.venv/bin/python -m multiagent_copilot.dq ingest --file ../reports/generated/feed.json        # exit 0
+.venv/bin/python -m multiagent_copilot.dq generate --count 100 --error-count 10 --seed 7 --out ../reports/generated/feed10.json
+.venv/bin/python -m multiagent_copilot.dq ingest --file ../reports/generated/feed10.json      # exit 2: rolled back
+.venv/bin/python -m multiagent_copilot.dq show-quarantine
+.venv/bin/python -m multiagent_copilot.dq report --out ../docs/dq/report.html
 ```
 
 The generator is deterministic (same seed and clock give the same file) and checks every record against the normalizer,

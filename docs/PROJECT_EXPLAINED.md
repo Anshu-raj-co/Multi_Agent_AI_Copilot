@@ -1,4 +1,4 @@
-# ResiliencePilot SDV — The Project Explained
+# Multi-Agent Copilot — The Project Explained
 
 A plain-English guide for teammates, judges and new users. It assumes you are a student who is new to cloud-native
 software and chaos engineering. Every technical word is explained the first time it appears, and the glossary in
@@ -12,7 +12,7 @@ not built is marked **Planned (Day 2)**.
 
 ## 1. The 60-second version
 
-**What we built.** ResiliencePilot is a small tool that tests how well a real, open-source vehicle fleet system copes
+**What we built.** Multi-Agent Copilot is a small tool that tests how well a real, open-source vehicle fleet system copes
 with failure. It runs the system on your laptop, breaks one part of it on purpose for a few seconds, watches what
 happens, puts the part back, and checks that the system really recovered.
 
@@ -30,7 +30,7 @@ to wrong decisions, and a normal health check would never raise an alarm.
 
 **What we proved, with measurements.** While we froze the part that sends vehicle data:
 - 100 % of API requests still returned HTTP 200.
-- ResiliencePilot flagged the data as stale 4.77–5.27 s after the freeze (6 full-length runs).
+- Multi-Agent Copilot flagged the data as stale 4.77–5.27 s after the freeze (6 full-length runs).
 - After we undid the freeze, recovery was verified from new vehicle timestamps 2.64–3.73 s later.
 - Every step ran behind a safety controller with a 30-second limit, a watchdog and a kill switch.
 
@@ -44,7 +44,7 @@ to wrong decisions, and a normal health check would never raise an alarm.
 
 ```mermaid
 flowchart LR
-  subgraph sandbox["Docker Compose project: resiliencepilot-sdv (runs only on your machine)"]
+  subgraph sandbox["Docker Compose project: multiagent-copilot (runs only on your machine)"]
     direction LR
     CSV[csv-provider<br/>replays recorded truck data] -->|gRPC| DB[(KUKSA databroker<br/>latest value of each signal)]
     FWD[fms-forwarder<br/>stamps createdDateTime] -->|gRPC read| DB
@@ -54,7 +54,7 @@ flowchart LR
     SRV[fms-server<br/>rFMS web API] -->|query| IDB
     GRA[grafana<br/>charts] -.->|query| IDB
   end
-  subgraph rp["ResiliencePilot (Python, on your machine)"]
+  subgraph rp["Multi-Agent Copilot (Python, on your machine)"]
     OBS[Observer<br/>read-only] --> TRK[Telemetry verifier]
     SAF[Safety controller] --> ORC[Orchestrator]
     ORC --> OBS
@@ -67,7 +67,7 @@ flowchart LR
 ```
 
 Read it left to right. Truck data starts in `csv-provider`, travels through the pipeline, lands in InfluxDB and is
-served by `fms-server`. ResiliencePilot sits outside the pipeline. It only **reads** from `fms-server` and only
+served by `fms-server`. Multi-Agent Copilot sits outside the pipeline. It only **reads** from `fms-server` and only
 **freezes and unfreezes** one container, `fms-forwarder`.
 
 ### The story of one experiment
@@ -78,13 +78,13 @@ This is a real run: `reports/day1/20261010T094045Z-3155f1.json`, a 12-second exp
    giving their name and a *hypothesis* (the guess being tested): *"Pausing fms-forwarder stalls createdDateTime
    while the rFMS API keeps returning HTTP 200."* The safety controller checks the request against strict rules
    before anything happens.
-2. **Baseline check (precheck).** ResiliencePilot polls the API and requires 3 fresh samples in a row first. If the
+2. **Baseline check (precheck).** Multi-Agent Copilot polls the API and requires 3 fresh samples in a row first. If the
    system is already unhealthy, it refuses to break it further. This took 1.6 s.
 3. **Fault.** It runs `docker pause fms-forwarder`, which freezes that container like pressing pause on a video,
    then confirms with `docker inspect` that the container really is paused.
 4. **Hidden failure.** The API keeps answering HTTP 200 on every request, but the vehicle timestamp
    `createdDateTime` stops moving. The data gets older every poll.
-5. **Detection.** 4.85 s after the pause, the data age passed the 5-second threshold and ResiliencePilot recorded
+5. **Detection.** 4.85 s after the pause, the data age passed the 5-second threshold and Multi-Agent Copilot recorded
    **"STALE while HTTP 200"**.
 6. **Rollback.** At the end of the 12-second window it runs `docker unpause fms-forwarder` and confirms with
    `docker inspect` that the container is running and not paused.
@@ -94,7 +94,7 @@ This is a real run: `reports/day1/20261010T094045Z-3155f1.json`, a 12-second exp
 8. **Evidence.** Every poll, every action and every timestamp is saved to a JSON file you can inspect later.
 
 *source: `README.md`, `docs/demo/DAY1_REPORT.md`, `reports/day1/20261010T094045Z-3155f1.json`,
-`backend/resiliencepilot/orchestrator.py`*
+`backend/multiagent_copilot/orchestrator.py`*
 
 ---
 
@@ -153,7 +153,7 @@ csv-provider ──gRPC──▶ databroker ◀──gRPC read── fms-forward
 ```
 
 The machine-readable version, with the file and line in the blueprint that proves each link, is
-`config/dependency_map.json`. Show it with `python -m resiliencepilot deps`. Each link carries a *confidence* label:
+`config/dependency_map.json`. Show it with `python -m multiagent_copilot deps`. Each link carries a *confidence* label:
 - **source**: we read it in the blueprint code or config.
 - **live network**: both containers share a Docker network, checked each time the map is shown.
 - **experiment**: freezing the forwarder changed what `fms-server` returns.
@@ -195,14 +195,14 @@ no false alarms in 184 baseline samples across 6 baselines.
 did, in 100 % of polls. Only by reading *inside* the answer, and comparing `createdDateTime` with the server clock,
 can you see the data is frozen. It is like checking that a thermometer turns on, but not whether its reading changes.
 
-*source: `docs/recon.md` §4, `docs/DECISIONS.md` D-008, `backend/resiliencepilot/telemetry.py`,
+*source: `docs/recon.md` §4, `docs/DECISIONS.md` D-008, `backend/multiagent_copilot/telemetry.py`,
 `docs/demo/DAY1_REPORT.md`, `config/safety.json`*
 
 ---
 
 ## 5. Our system, component by component
 
-All code is in `backend/resiliencepilot/`.
+All code is in `backend/multiagent_copilot/`.
 
 | Component | What it does | Why it exists | File |
 |---|---|---|---|
@@ -217,22 +217,22 @@ All code is in `backend/resiliencepilot/`.
 | **Recovery verifier** | After rollback, requires 3 successive advances of `createdDateTime`, each fresh (≤ 5 s) with HTTP 200, and each newer than anything seen during the fault, within 30 s. | "Container running" or "HTTP 200" is not recovery. New data is. | `orchestrator.py` (`_finish`) |
 | **Evidence store** | Saves every run (request, timeline, every observation, rollback, recovery, impact) and every baseline as JSON. | Claims must be checkable later. | `evidence.py` → `backend/data/` (local); curated real runs in `reports/day1/` |
 | **Docker wrapper** | The single place that calls the `docker` command line. | Tests replace it with a fake, so safety logic is tested without Docker. | `docker_cli.py` |
-| **CLI** | Commands: `status`, `observe`, `baseline`, `run`, `stop`, `reset`, `runs`, `show`, `deps`, `show-baseline`, `report`, `serve`. Also installed as the `rp` command. | The operator's control panel. | `__main__.py`, `views.py` |
-| **Local API + live dashboard** | `rp serve` starts a FastAPI server bound to 127.0.0.1 only. It serves one static page that polls `GET /api/status` every 500 ms and shows a data-age gauge, an HTTP status chip, a phase timeline, a live chart and Start / Kill / Reset buttons. `GET /api/proposals` lists the rule-based planner's ranking with reasons, predicted symptoms and risks; `POST /api/run` accepts exactly `{experiment_id, approved_by}` (a catalogue id and the approver's typed name); target and duration come from the catalogue (PR #25). The dashboard refuses to start with a GUARDRAIL-DEMO profile set. Kill and Reset call the same safety-controller functions as the CLI. Busy → 409, latched → 423. | Lets a person run and watch the experiment live without the terminal, without adding a second path around the safety rules. | `api.py`, `static/dashboard.html` |
-| **Explainer page** | `rp report` builds one standalone, offline HTML file from recorded runs: dependency map, baseline, and a chart of data age against the 5 s threshold while every poll was HTTP 200. It is read-only and has no buttons that start or stop anything. | Makes the impact easy to see for non-engineers. | `explainer.py` → `reports/day1/explainer.html` |
+| **CLI** | Commands: `status`, `observe`, `baseline`, `run`, `stop`, `reset`, `runs`, `show`, `deps`, `show-baseline`, `report`, `serve`. Also installed as the `mcop` command. | The operator's control panel. | `__main__.py`, `views.py` |
+| **Local API + live dashboard** | `mcop serve` starts a FastAPI server bound to 127.0.0.1 only. It serves one static page that polls `GET /api/status` every 500 ms and shows a data-age gauge, an HTTP status chip, a phase timeline, a live chart and Start / Kill / Reset buttons. `GET /api/proposals` lists the rule-based planner's ranking with reasons, predicted symptoms and risks; `POST /api/run` accepts exactly `{experiment_id, approved_by}` (a catalogue id and the approver's typed name); target and duration come from the catalogue (PR #25). The dashboard refuses to start with a GUARDRAIL-DEMO profile set. Kill and Reset call the same safety-controller functions as the CLI. Busy → 409, latched → 423. | Lets a person run and watch the experiment live without the terminal, without adding a second path around the safety rules. | `api.py`, `static/dashboard.html` |
+| **Explainer page** | `mcop report` builds one standalone, offline HTML file from recorded runs: dependency map, baseline, and a chart of data age against the 5 s threshold while every poll was HTTP 200. It is read-only and has no buttons that start or stop anything. | Makes the impact easy to see for non-engineers. | `explainer.py` → `reports/day1/explainer.html` |
 
 ### The safety controller in detail
 
 - **Allowlist.** Each experiment type lists the exact containers it may touch. `telemetry_stall` may only touch
   `fms-forwarder`. The container must also carry the Docker Compose label `com.docker.compose.project =
-  resiliencepilot-sdv`, so a same-named container from another project is refused.
+  multiagent-copilot`, so a same-named container from another project is refused.
 - **Strict schema.** The request must match exactly; unknown fields, wrong types, durations over 30 s or a blank
   approver are rejected before anything runs.
 - **One-experiment lock.** A file `backend/data/run.lock`, created atomically and holding the owner's process ID. A
   second terminal is refused with BUSY. A lock left behind by a crashed process latches the system.
 - **30-second watchdog.** The total fault time is capped at `min(duration + grace, 30 s)`. The grace period is
   capped at 10 s.
-- **Kill switch.** Three ways: `python -m resiliencepilot stop`, Ctrl+C, or `scripts/kill-switch.sh`. The script
+- **Kill switch.** Three ways: `python -m multiagent_copilot stop`, Ctrl+C, or `scripts/kill-switch.sh`. The script
   works even if the Python backend has crashed. It writes an `EMERGENCY_STOP` file, unpauses every allowlisted target
   directly with Docker, retries 3 times, and exits with an error if anything is still paused.
 - **Latched unsafe state.** If rollback or recovery cannot be verified, or a crash is found at the next start, the
@@ -241,13 +241,13 @@ All code is in `backend/resiliencepilot/`.
 
 ### Is there a dashboard or UI?
 
-- **Live dashboard: yes, merged (PR #6).** `rp serve`, then open `http://127.0.0.1:8765/`. It is localhost-only and
+- **Live dashboard: yes, merged (PR #6).** `mcop serve`, then open `http://127.0.0.1:8765/`. It is localhost-only and
   shows only real values; anything missing reads "not recorded". It was run end to end from the page on 2026-10-10:
   Start → stale while HTTP 200 → Kill → rollback and recovery verified → Reset.
 - **Explainer page:** a static, read-only report (above), not a control panel.
 - There is **no AI** in the system. **Planned (Day 2).**
 
-*source: `docs/ARCHITECTURE.md`, `backend/resiliencepilot/*.py` (incl. `api.py`), `backend/pyproject.toml`, `config/*.json`,
+*source: `docs/ARCHITECTURE.md`, `backend/multiagent_copilot/*.py` (incl. `api.py`), `backend/pyproject.toml`, `config/*.json`,
 `scripts/kill-switch.sh`, `docs/testing/SAFETY_REVIEW.md`, `docs/DECISIONS.md` D-009–D-011, `README.md`*
 
 ---
@@ -261,7 +261,7 @@ All code is in `backend/resiliencepilot/`.
 | **httpx** | Makes the HTTP calls to the rFMS API. |
 | **pytest** | The tests on `main`: 317 unit tests, plus 3 live tests that need the running stack (320 with `MCOP_LIVE=1`; verified 2026-10-11 on `main` after PR #29). |
 | **`docker` command line via one wrapper** | One small file that tests can fake; no Docker socket is ever handed to any other component. |
-| **FastAPI + uvicorn** | Run the local API and dashboard (`rp serve`), bound to 127.0.0.1 only. |
+| **FastAPI + uvicorn** | Run the local API and dashboard (`mcop serve`), bound to 127.0.0.1 only. |
 | **Frontend** | No framework, npm or build step. The dashboard is one static HTML file (inline CSS/JS) served by the API. The explainer is a generated HTML file that needs no server. |
 
 ### Docker and Docker Compose
@@ -274,7 +274,7 @@ We use them because:
   reach containers inside our own Compose project, on our own machine.
 - **Easy rollback.** `docker pause` and `docker unpause` freeze and thaw a container without losing its state.
 
-We do not edit the blueprint's Compose files. A small override file (`config/compose/resiliencepilot.override.yaml`)
+We do not edit the blueprint's Compose files. A small override file (`config/compose/multiagent-copilot.override.yaml`)
 changes only the network type (see §12 troubleshooting).
 
 ### Zenoh, KUKSA and InfluxDB are not our choice
@@ -288,7 +288,7 @@ the repo. The facts are: the blueprint ships Docker Compose files as its quick s
 Docker Compose, and everything runs on a single laptop. Kubernetes would add a layer the experiment does not need.
 
 *source: `docs/DECISIONS.md` D-002, D-007, `backend/pyproject.toml`, `backend/tests/`, `scripts/_compose.sh`,
-`config/compose/resiliencepilot.override.yaml`, `Fleet Management/fleet-management/README.md` (Quick Start); image
+`config/compose/multiagent-copilot.override.yaml`, `Fleet Management/fleet-management/README.md` (Quick Start); image
 sizes from `docker images` on 2026-10-10*
 
 ---
@@ -323,7 +323,7 @@ What you see on screen during the fault (from the same kind of run today):
 `createdDateTime` is frozen while `receivedDateTime` keeps ticking: that is the hidden failure in one line.
 
 *source: `reports/day1/20261010T094045Z-3155f1.json` (timeline), `reports/day1/20261010T092158Z-43ca5b.json`,
-`backend/resiliencepilot/orchestrator.py`, `docs/ARCHITECTURE.md` (state machine)*
+`backend/multiagent_copilot/orchestrator.py`, `docs/ARCHITECTURE.md` (state machine)*
 
 ---
 
@@ -428,11 +428,11 @@ run with a precise timestamp: 0.6 s from switch to verified rollback.
 | First failure injected and observed | **Done**: `telemetry_stall` |
 | Safety controls (automatic stop/rollback) tested | **Done**: watchdog, kill switch, latch; 80 unit + 3 live tests on `main` |
 | Day-1 demo | **Done**: `scripts/demo-day1.sh`, `docs/demo/DAY1_DEMO.md` |
-| Visual impact report | **Done**: explainer page (`rp report`) |
+| Visual impact report | **Done**: explainer page (`mcop report`) |
 | AI experiment planner (ranks experiments from the dependency map) | **Planned (Day 2)** |
 | Three or more failure types (e.g. consumer pause, forwarder crash/restart, InfluxDB stop) | **Planned (Day 2)**; only 1 built |
 | AI findings, severity ranking, fixes, resilience score | **Planned (Day 2)** |
-| Interactive dashboard | **Done** (PR #6, merged): `rp serve`; run live from the page |
+| Interactive dashboard | **Done** (PR #6, merged): `mcop serve`; run live from the page |
 | Windows file-race fix in the safety controller, CLI UTF-8 output | **Done**: PR #10 and PR #9 (merged) |
 | Clean run from scratch, demo video, final README | **Planned (Day 2)** |
 
@@ -446,8 +446,8 @@ run with a precise timestamp: 0.6 s from switch to verified rollback.
 >
 > **Latest clean-clone test (2026-10-11, macOS 27.0.1 on Apple Silicon):** a fresh `git clone` into a new folder,
 > with the cached `fms-server`/`fms-consumer` images deleted first. Every step passed: `stack-up.sh` (both images
-> pulled as linux/amd64, D-023), `stack-status.sh` (8/8, exit 0; exit 1 after `stack-down`), tests, `rp status`, the
-> full demo (exit 0, 42 s) and `rp serve`. The steps below use Windows paths (`.venv/Scripts/`); on macOS use
+> pulled as linux/amd64, D-023), `stack-status.sh` (8/8, exit 0; exit 1 after `stack-down`), tests, `mcop status`, the
+> full demo (exit 0, 42 s) and `mcop serve`. The steps below use Windows paths (`.venv/Scripts/`); on macOS use
 > `.venv/bin/`. Earlier clean-clone tests on Windows hit two problems, both in the troubleshooting table: the
 > submodule clone failed on a long folder path ("Filename too long"), and CLI output crashed with
 > `UnicodeEncodeError` when piped (fixed by PR #9). Windows was not re-tested after the 2026-10-11 changes.
@@ -468,8 +468,8 @@ run with a precise timestamp: 0.6 s from switch to verified rollback.
 
 **1. Clone and fetch the blueprint**
 ```bash
-git clone https://github.com/Anshu-raj-co/ResiliencePilot.git
-cd ResiliencePilot
+git clone https://github.com/Anshu-raj-co/Multi_Agent_AI_Copilot.git
+cd Multi-Agent Copilot
 git -c core.longpaths=true submodule update --init   # long-paths flag avoids "Filename too long" on Windows
 export PYTHONIOENCODING=utf-8                          # Windows: lets the CLI print its symbols (see troubleshooting)
 ```
@@ -499,15 +499,15 @@ Success: 8 containers `running` (InfluxDB `healthy`), then a JSON answer with `c
 **5. Check the controller and observe live freshness**
 ```bash
 cd backend
-.venv/Scripts/python -m resiliencepilot status       # "state": "READY"
-.venv/Scripts/python -m resiliencepilot deps         # dependency map with live network checks
-.venv/Scripts/python -m resiliencepilot observe -n 6 # FRESH lines, createdDateTime advancing
+.venv/Scripts/python -m multiagent_copilot status       # "state": "READY"
+.venv/Scripts/python -m multiagent_copilot deps         # dependency map with live network checks
+.venv/Scripts/python -m multiagent_copilot observe -n 6 # FRESH lines, createdDateTime advancing
 MCOP_LIVE=1 .venv/Scripts/python -m pytest -q          # 320 passed, 8 skipped
 ```
 
 **6. Baseline**
 ```bash
-.venv/Scripts/python -m resiliencepilot baseline -n 60
+.venv/Scripts/python -m multiagent_copilot baseline -n 60
 ```
 Success: 60 samples, all FRESH, HTTP 200 ratio 1.0. Saved under `backend/data/baselines/`.
 
@@ -522,17 +522,17 @@ kill switch (`Result: ABORTED stop_reason=emergency_stop`, recovery verified); t
 Or one experiment by hand:
 ```bash
 cd backend
-.venv/Scripts/python -m resiliencepilot run --duration 10 --approved-by "<your name>"
-.venv/Scripts/python -m resiliencepilot show <run_id>     # impact chart for a recorded run
-.venv/Scripts/rp report                                   # writes reports/day1/explainer.html
+.venv/Scripts/python -m multiagent_copilot run --duration 10 --approved-by "<your name>"
+.venv/Scripts/python -m multiagent_copilot show <run_id>     # impact chart for a recorded run
+.venv/Scripts/mcop report                                   # writes reports/day1/explainer.html
 ```
 
 **8. Kill switch, and resetting after a stop or latch**
 ```bash
 ./scripts/kill-switch.sh               # from the repo root; works even if Python is dead
 cd backend
-.venv/Scripts/python -m resiliencepilot status
-.venv/Scripts/python -m resiliencepilot reset --operator "<your name>" --note "checked: all containers running"
+.venv/Scripts/python -m multiagent_copilot status
+.venv/Scripts/python -m multiagent_copilot reset --operator "<your name>" --note "checked: all containers running"
 ```
 Success: the kill switch prints `fms-forwarder: running=true paused=false` and exits 0. Until you `reset`, new runs
 print `REFUSED: emergency stop engaged…`. If `status` says `LATCHED_UNSAFE`, read the reason, run
@@ -540,7 +540,7 @@ print `REFUSED: emergency stop engaged…`. If `status` says `LATCHED_UNSAFE`, r
 
 **9. Live dashboard (optional)**
 ```bash
-cd backend && .venv/Scripts/rp serve      # open http://127.0.0.1:8765/ ; Ctrl+C to stop
+cd backend && .venv/Scripts/mcop serve      # open http://127.0.0.1:8765/ ; Ctrl+C to stop
 ```
 Success: the page shows READY, HTTP 200 and a fresh data age. Pick one ranked experiment (e.g. `telemetry_stall`),
 type your name, and click *Approve & start*; a confirm dialog shows the pick, predicted symptoms and risks. For
@@ -566,11 +566,11 @@ cd .. && ./scripts/stack-down.sh            # add --volumes to also delete Influ
 | `permission denied` on `./scripts/*.sh` | Scripts were committed without the executable bit | Fixed in git (PR #7). On an old checkout, use `bash scripts/stack-up.sh`. *(hit on macOS)* |
 | `fatal: cannot write keep file … Filename too long` during `git submodule update --init` | Windows' 260-character path limit; the blueprint has deep paths, so a clone inside a long folder path fails | `git -c core.longpaths=true submodule update --init`, or clone into a short path such as `C:\src`. *(hit during the clean-clone test)* |
 | `UnicodeEncodeError: 'charmap' codec can't encode characters` from `deps`, `observe` or `baseline` | On Windows, Python falls back to the cp1252 encoding when output is piped or redirected, and the CLI prints symbols like `→` and `█` | `export PYTHONIOENCODING=utf-8` before running the CLI (`demo-day1.sh` already does this). *(hit during the clean-clone test; fixed in code by PR #9: the CLI now sets UTF-8 itself, so this is only needed on older commits)* |
-| `status` says `BUSY` | Another terminal is running an experiment | Wait for it, or stop it with `python -m resiliencepilot stop`. |
+| `status` says `BUSY` | Another terminal is running an experiment | Wait for it, or stop it with `python -m multiagent_copilot stop`. |
 | `status` says `LATCHED_UNSAFE` | A rollback/recovery was not verified, or the backend crashed mid-fault | Run `./scripts/kill-switch.sh`, check `./scripts/stack-status.sh`, then `reset` with your name and a note. |
 
 *source: `README.md`, `docs/coordination/HANDOFF.md`, PR #6 description, `docs/recon.md` §1, §3, `docs/DECISIONS.md` D-002, D-005,
-D-006, `scripts/*.sh`, `backend/resiliencepilot/__main__.py`, `backend/pyproject.toml`*
+D-006, `scripts/*.sh`, `backend/multiagent_copilot/__main__.py`, `backend/pyproject.toml`*
 
 ---
 

@@ -1,7 +1,7 @@
-# ResiliencePilot SDV — Day-1 Judge Report
+# Multi-Agent Copilot — Day-1 Judge Report
 
 **Claim:** the Eclipse SDV Fleet Management rFMS API keeps answering **HTTP 200 with a fresh `receivedDateTime`
-while vehicle telemetry is frozen**. ResiliencePilot detects this from the data itself. It injects the fault on
+while vehicle telemetry is frozen**. Multi-Agent Copilot detects this from the data itself. It injects the fault on
 purpose behind a deterministic safety controller, rolls it back, and verifies recovery from new vehicle timestamps.
 Every number below comes from a real run on 2026-10-10. The raw evidence is in [`reports/day1/`](../../reports/day1/)
 (12 run records and 2 baselines). Target: upstream blueprint [`eclipse-sdv-blueprints/fleet-management`](https://github.com/eclipse-sdv-blueprints/fleet-management) @ `3d514ac72a`, Zenoh transport, run locally with Docker Compose.
@@ -10,7 +10,7 @@ Every number below comes from a real run on 2026-10-10. The raw evidence is in [
 
 ```mermaid
 flowchart LR
-  subgraph sandbox["Docker Compose project: resiliencepilot-sdv (local only)"]
+  subgraph sandbox["Docker Compose project: multiagent-copilot (local only)"]
     direction LR
     CSV[csv-provider<br/>CSV replay] -->|gRPC| DB[(KUKSA<br/>databroker)]
     FWD[fms-forwarder<br/>stamps createdDateTime] -->|gRPC get/subscribe| DB
@@ -20,7 +20,7 @@ flowchart LR
     SRV[fms-server<br/>rFMS API<br/>receivedDateTime = now] -->|Flux query| IDB
     GRA[grafana] -.->|Flux| IDB
   end
-  subgraph rp["ResiliencePilot backend (host)"]
+  subgraph rp["Multi-Agent Copilot backend (host)"]
     OBS[RfmsObserver<br/>read-only] --> TRK[FreshnessTracker<br/>age + progression]
     ORC[Orchestrator<br/>state machine] --> OBS
     SAF[SafetyController<br/>schema · allowlist · run lock · latch] --> ORC
@@ -32,7 +32,7 @@ flowchart LR
   KS[scripts/kill-switch.sh<br/>independent of backend] ==>|unpause| FWD
 ```
 
-## Dependency map (`config/dependency_map.json`, shown live by `resiliencepilot deps`)
+## Dependency map (`config/dependency_map.json`, shown live by `multiagent-copilot deps`)
 
 Telemetry path: `csv-provider → databroker → fms-forwarder → fms-zenoh-router → fms-consumer → influxDB → fms-server`.
 

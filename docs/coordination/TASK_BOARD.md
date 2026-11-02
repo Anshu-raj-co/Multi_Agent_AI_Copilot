@@ -7,10 +7,10 @@ Human teammates are not yet connected; roles below are placeholders (no identiti
 | Role | Owns (files) | Depends on |
 |---|---|---|
 | H1 Lead / integration | `contracts/`, `docs/`, `CLAUDE.md`, PR review, demo | all |
-| H2 SDV integration | `config/compose/`, `scripts/stack-*.sh`, `backend/resiliencepilot/sdv_adapter.py`, `docs/recon.md` | blueprint |
-| H3 Safety / faults | `backend/resiliencepilot/safety.py`, `faults.py`, `docker_cli.py`, `config/safety.json`, `backend/tests/test_safety*.py` | contracts, H2 |
-| H4 Telemetry / evidence | `backend/resiliencepilot/telemetry.py`, `baseline.py`, `evidence.py`, `backend/tests/test_telemetry*.py` | H2 |
-| H5 AI / UI / QA | `frontend/`, `backend/resiliencepilot/analyst/` (Phase 4+), e2e tests | contracts, H3, H4 |
+| H2 SDV integration | `config/compose/`, `scripts/stack-*.sh`, `backend/multiagent_copilot/sdv_adapter.py`, `docs/recon.md` | blueprint |
+| H3 Safety / faults | `backend/multiagent_copilot/safety.py`, `faults.py`, `docker_cli.py`, `config/safety.json`, `backend/tests/test_safety*.py` | contracts, H2 |
+| H4 Telemetry / evidence | `backend/multiagent_copilot/telemetry.py`, `baseline.py`, `evidence.py`, `backend/tests/test_telemetry*.py` | H2 |
+| H5 AI / UI / QA | `frontend/`, `backend/multiagent_copilot/analyst/` (Phase 4+), e2e tests | contracts, H3, H4 |
 
 ## Day 1 tasks
 

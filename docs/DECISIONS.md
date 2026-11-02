@@ -6,7 +6,7 @@ Format: ID — decision — why — consequences. Newest at bottom.
 Why: already present in the repo as a gitlink to that commit; Apache-2.0; prebuilt images are published; Zenoh
 variant runs fully locally (Hono variant needs the public Hono sandbox, i.e. an external system — excluded by safety rules).
 
-**D-002 — Override `overlay` networks to `bridge`** (`config/compose/resiliencepilot.override.yaml`).
+**D-002 — Override `overlay` networks to `bridge`** (`config/compose/multiagent-copilot.override.yaml`).
 Why: `overlay` requires Docker Swarm (`docker info`: Swarm inactive). Single-host bridge networks keep the same
 topology (two networks, forwarder + router dual-homed). Upstream files are not modified.
 
@@ -103,8 +103,8 @@ the rule-based knowledge base with the reason and the model's text recorded. Rul
 
 **D-021 — Databroker host port moved to 55557 (override: `MCOP_DATABROKER_HOST_PORT`).** Upstream hardcodes
 `127.0.0.1:55555`, which collided with another program on a dev Mac and blocked `databroker`, `csv-provider` and
-`fms-forwarder`. Remapped via `config/compose/resiliencepilot.override.yaml` (`ports: !override`), blueprint untouched.
-No ResiliencePilot code uses the host port; container-to-container traffic is unchanged.
+`fms-forwarder`. Remapped via `config/compose/multiagent-copilot.override.yaml` (`ports: !override`), blueprint untouched.
+No Multi-Agent Copilot code uses the host port; container-to-container traffic is unchanged.
 
 **D-022: Response envelope ceilings widened to 8 s / 7500 ms (approved by the user, 2026-10-11).** Under D-017's
 5 s, 3 of 5 `dependency_failure` runs aborted on the first fault poll (fms-server blocked > 5 s while InfluxDB was
@@ -114,9 +114,11 @@ slow poll, so a 4.5 s cap would abort the same runs. Both ceilings rise together
 Unchanged: fault-window polls only; duration + timeout ≤ 30 s (15 + 8 = 23); precheck and recovery keep the global
 2 s timeout; recovery rule 6 and all other guards are untouched.
 
-**D-023: Pin `fms-server` and `fms-consumer` to `platform: linux/amd64` (`config/compose/resiliencepilot.override.yaml`).**
+**D-023: Pin `fms-server` and `fms-consumer` to `platform: linux/amd64` (`config/compose/multiagent-copilot.override.yaml`).**
 Why: both images are published for linux/amd64 only (`docker buildx imagetools inspect`), so on Apple Silicon
 `docker compose pull` failed with `no matching manifest for linux/arm64/v8` and, under `set -e`, nothing started. The
 pin lets Docker Desktop pull the amd64 image and run it under emulation; it is a no-op on x86-64 hosts. Upstream files
 are not modified. Consequence: on Apple Silicon these two services run emulated, so their latency is not comparable
 with x86 runs; the platform is recorded next to run statistics.
+
+**D-024: Renamed ResiliencePilot SDV to Multi-Agent Copilot for the university project review.** Compose label (multiagent-copilot), package (multiagent_copilot), CLI (mcop) and env prefix (MCOP_) changed together; committed evidence under reports/ left untouched; original Bosch repository left unchanged.

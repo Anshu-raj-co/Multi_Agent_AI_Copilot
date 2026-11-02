@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Shared compose invocation for the ResiliencePilot sandbox. Source this file.
+# Shared compose invocation for the Multi-Agent Copilot sandbox. Source this file.
 set -euo pipefail
 MCOP_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BLUEPRINT_DIR="$MCOP_ROOT/Fleet Management/fleet-management"

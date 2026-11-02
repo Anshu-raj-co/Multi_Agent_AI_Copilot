@@ -1,11 +1,11 @@
 # AI provider layer (advisory)
 
-`rp advise [--dir DIR] [--offline] [--json] [--out FILE]` runs two advisors over stored run records:
+`mcop advise [--dir DIR] [--offline] [--json] [--out FILE]` runs two advisors over stored run records:
 
 - **AI Planner**: proposes an order for the allowlisted experiments, with a technical rationale.
-- **AI Analyst**: maps each finding (`rp findings`) to a root cause and a ranked remediation playbook (verify, mitigate, fix).
+- **AI Analyst**: maps each finding (`mcop findings`) to a root cause and a ranked remediation playbook (verify, mitigate, fix).
 
-Code: `backend/resiliencepilot/ai.py`. Config: `config/ai.json` (local Ollama, `qwen2.5:7b`, temperature 0, seed 42, 240 s timeout).
+Code: `backend/multiagent_copilot/ai.py`. Config: `config/ai.json` (local Ollama, `qwen2.5:7b`, temperature 0, seed 42, 240 s timeout).
 Tests: `backend/tests/test_ai.py`.
 
 ## Safety boundary (CLAUDE.md rule 8)
@@ -25,7 +25,7 @@ Tests: `backend/tests/test_ai.py`.
 
 ## Validation and fallback
 
-The deterministic rule-based answer (`rp plan` order; the analyst's knowledge base) is always computed first.
+The deterministic rule-based answer (`mcop plan` order; the analyst's knowledge base) is always computed first.
 
 | Check | On failure |
 |---|---|
@@ -39,7 +39,7 @@ Every result records its provider (`ollama:<model>` or `rule-based`) per section
 ## Measured on 2026-10-11 (macOS, Ollama 0.40.2, `qwen2.5:7b`, 17 committed Day-2 runs)
 
 - **Planner:** valid permutation every time; same order as the rule-based planner (dependency_failure, service_crash,
-  telemetry_stall). Rationales are generic. About 1 min 50 s per `rp advise` call (planner + analyst).
+  telemetry_stall). Rationales are generic. About 1 min 50 s per `mcop advise` call (planner + analyst).
 - **Analyst, first attempt (all facts in one list, structural validation only):** 7/7 items passed validation, but 4
   root causes contradicted the evidence (DNS caching blamed for the HTTP-200-while-stale symptom; the forwarder
   blamed for data loss that the consumer causes; the server blamed for the consumer's silent failure; a deliberate
@@ -51,7 +51,7 @@ Every result records its provider (`ollama:<model>` or `rule-based`) per section
 
 ### `qwen2.5-coder:14b` (2026-10-11, same Mac: Apple Mac16,12, 16 GB, Ollama 0.40.2, 21 committed runs)
 - **Planner:** valid permutation, same order as the rules; about 4 min for the planner call alone.
-- **Analyst:** timed out at 120 s and again at 300 s (an 8 min 22 s `rp advise` call). Both times every finding fell
+- **Analyst:** timed out at 120 s and again at 300 s (an 8 min 22 s `mcop advise` call). Both times every finding fell
   back to the rule-based answer, with `ollama unreachable: ReadTimeout` recorded. On this hardware the 14B model is
   too slow for the analyst prompt, so `config/ai.json` stays on `qwen2.5:7b`.
 - **Side effect:** right after the 14B runs, the 7B analyst also timed out twice at 120 s (the 9 GB model was still

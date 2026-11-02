@@ -456,7 +456,7 @@ $("limitList").innerHTML=[
 ].map(function(x){return "<li>"+x+"</li>";}).join("");
 $("srcLimits").innerHTML=src([D.baseline_first.source, D.baseline_ref.source, "config/safety.json"]);
 
-$("gen").textContent="Generated "+D.generated_at+" by `rp report` from recorded files only. Static page, so no control here can start, stop or reset an experiment.";
+$("gen").textContent="Generated "+D.generated_at+" by `mcop report` from recorded files only. Static page, so no control here can start, stop or reset an experiment.";
 drawArch(); drawChart();
 if(window.matchMedia){ window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change",function(){drawArch();drawChart();}); }
 })();

@@ -179,7 +179,7 @@ def main(argv: list[str] | None = None) -> int:
                 from .evidence import EvidenceStore
                 stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
                 log = EvidenceStore(load_safety_config().data_dir).save_ai_calls(stamp, {
-                    "logged_at": datetime.now(timezone.utc).isoformat(), "command": "rp advise",
+                    "logged_at": datetime.now(timezone.utc).isoformat(), "command": "mcop advise",
                     "runs_dir": d.name, "n_runs": len(runs), "calls": provider.calls})
                 result["ai_call_log"] = str(log)
                 md += f"\nModel calls (prompts, raw responses, validation): `{log.name}` in the evidence store's ai_calls/.\n"

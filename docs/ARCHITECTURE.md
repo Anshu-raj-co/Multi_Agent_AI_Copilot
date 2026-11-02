@@ -1,13 +1,13 @@
 # Architecture (Day 1)
 
 ```
-                 ┌──────────────── Docker Compose project "resiliencepilot-sdv" (local sandbox) ───────────────┐
+                 ┌──────────────── Docker Compose project "multiagent-copilot" (local sandbox) ───────────────┐
                  │ csv-provider → databroker → fms-forwarder ─zenoh→ fms-zenoh-router → fms-consumer → InfluxDB │
                  │                                   ▲ pause/unpause                                  │         │
                  │                                   │ (allowlisted)                     fms-server (rFMS API)  │
                  └───────────────────────────────────┼────────────────────────────────────────┬───────────────┘
                                                      │ docker CLI                             │ HTTP GET (read-only)
-┌──────────────────────── ResiliencePilot backend (Python) ──────────────────────────────────┼───────────────┐
+┌──────────────────────── Multi-Agent Copilot backend (Python) ──────────────────────────────────┼───────────────┐
 │  docker_cli.py ◀── faults.py (PauseFault, Watchdog) ◀── orchestrator.py ──▶ sdv_adapter.py (RfmsObserver) │
 │                                   ▲                         │   ▲                     │                    │
 │                         safety.py (SafetyController)        │   └── telemetry.py (FreshnessTracker)       │

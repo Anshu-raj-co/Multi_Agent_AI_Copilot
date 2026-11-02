@@ -1,6 +1,6 @@
 """Dashboard insights (read-only): scores, planner proposals and findings for one run-record directory.
 
-Built from the same functions as `rp score`, `rp plan` and `rp findings`. Takes the catalog the server already
+Built from the same functions as `mcop score`, `mcop plan` and `mcop findings`. Takes the catalog the server already
 enforces (ExperimentSpec objects), so the planner can only propose what the safety controller allows.
 """
 from __future__ import annotations

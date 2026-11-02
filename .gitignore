@@ -22,7 +22,7 @@ htmlcov/
 node_modules/
 dist/
 
-# Runtime data produced by ResiliencePilot (evidence DB, raw logs)
+# Runtime data produced by Multi-Agent Copilot (evidence DB, raw logs)
 backend/data/
 *.sqlite3
 *.db

@@ -1,10 +1,10 @@
 # Resilience Score
 
-`rp score` rates how the SDV stack behaved under one **verified** fault, on a 0–100 scale. It is computed only from a
+`mcop score` rates how the SDV stack behaved under one **verified** fault, on a 0–100 scale. It is computed only from a
 stored run record (`backend/data/runs/*.json` or a committed copy). Nothing is estimated: a component the record does
-not measure is shown as **n/m** (not measured) and left out of the weighted mean. Code: `backend/resiliencepilot/scoring.py`.
+not measure is shown as **n/m** (not measured) and left out of the weighted mean. Code: `backend/multiagent_copilot/scoring.py`.
 
-The score rates the **system under test** (the Eclipse SDV Fleet Management Blueprint), not ResiliencePilot.
+The score rates the **system under test** (the Eclipse SDV Fleet Management Blueprint), not Multi-Agent Copilot.
 
 ## Formula
 
@@ -75,7 +75,7 @@ M = Σ wᵢ·Sᵢ / Σ wᵢ      over the measured components i ∈ {D, R, G, B}
 
 ## Day-2 results (committed runs in `reports/day2/`)
 
-Command: `rp score --dir reports/day2`. Full output in `reports/day2/scores.json`.
+Command: `mcop score --dir reports/day2`. Full output in `reports/day2/scores.json`.
 
 | Experiment | Full-window runs | Median | Range | What drives it |
 |---|---|---|---|---|

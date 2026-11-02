@@ -101,7 +101,7 @@ class OllamaProvider:
         self.cfg, self.transport = cfg, transport
         self.name = f"ollama:{cfg.model}"
         # Every call, in order: exact prompts, raw HTTP response body, model and the validation result (set by the
-        # caller). Written to data/ai_calls/ by `rp advise` so any AI text can be traced back to what the model saw.
+        # caller). Written to data/ai_calls/ by `mcop advise` so any AI text can be traced back to what the model saw.
         self.calls: list[dict] = []
 
     def chat_json(self, system: str, user: str, schema: dict) -> dict:
@@ -226,7 +226,7 @@ KB = {
     ("silent_during_fault", "*"): (
         "fms-server serves the last stored status with receivedDateTime = request time and no staleness signal, so the "
         "API stays HTTP 200 while vehicle data is frozen (verified).", "high",
-        [("verify", "Compare createdDateTime age with the 5 s threshold on every poll (`rp observe`)."),
+        [("verify", "Compare createdDateTime age with the 5 s threshold on every poll (`mcop observe`)."),
          ("mitigate", "Alert on createdDateTime age > 5 s instead of on HTTP status or container state."),
          ("fix", "Expose data age in the rFMS response or return 503 when the newest status is older than a threshold.")]),
     ("silent_after_rollback", "dependency_failure"): (

@@ -1,11 +1,11 @@
-# ResiliencePilot SDV — Engineering Instructions
+# Multi-Agent Copilot — Engineering Instructions
 
 Read this first, then `docs/coordination/HANDOFF.md` and `docs/coordination/CURRENT_STATUS.md`.
 The original product brief (with its priority OVERRIDES) is in `docs/BRIEF.md`.
 
 ## Product in one paragraph
 
-ResiliencePilot is a local-first resilience workbench for the **Eclipse SDV Fleet Management Blueprint**
+Multi-Agent Copilot is a local-first resilience workbench for the **Eclipse SDV Fleet Management Blueprint**
 (vendored at `Fleet Management/fleet-management/`, Apache-2.0). It proves that the rFMS API can return
 HTTP 200 while vehicle telemetry is stale, detects that discrepancy from real observations, runs
 bounded/reversible fault experiments behind a deterministic safety controller, and independently
@@ -19,7 +19,7 @@ verifies recovery from advancing telemetry — never from HTTP 200 or "container
 | `config/compose/` | Our Compose override(s) for running the blueprint locally. |
 | `config/` | Safety limits and target allowlist. |
 | `contracts/` | JSON Schemas shared by backend/frontend/AI (source of truth for interfaces). |
-| `backend/resiliencepilot/` | Python package: SDV adapter, telemetry verifier, baseline, safety controller, fault adapters, orchestrator, evidence store, API/CLI. |
+| `backend/multiagent_copilot/` | Python package: SDV adapter, telemetry verifier, baseline, safety controller, fault adapters, orchestrator, evidence store, API/CLI. |
 | `backend/tests/` | pytest unit + integration tests. |
 | `scripts/` | Start/stop stack, run baseline, run demo. |
 | `experiments/` | Experiment definitions (allowlisted catalogue). |
@@ -28,7 +28,7 @@ verifies recovery from advancing telemetry — never from HTTP 200 or "container
 
 ## Safety rules (non-negotiable)
 
-1. Faults only against containers of the local Compose project `resiliencepilot-sdv`, by **exact allowlisted
+1. Faults only against containers of the local Compose project `multiagent-copilot`, by **exact allowlisted
    container name** AND matching `com.docker.compose.project` label. Never anything else.
 2. Only predefined experiment types (`contracts/experiment_request.schema.json`). Strict validation; unknown fields rejected.
 3. One active experiment at a time, across processes (`backend/data/run.lock` with owner PID). Total fault time
@@ -49,7 +49,7 @@ verifies recovery from advancing telemetry — never from HTTP 200 or "container
 ## Engineering conventions
 
 - Python 3.13, typed (dataclasses/pydantic), small modules. Docker is driven via the `docker` CLI through a single
-  wrapper (`backend/resiliencepilot/docker_cli.py`) so it can be faked in tests.
+  wrapper (`backend/multiagent_copilot/docker_cli.py`) so it can be faked in tests.
 - Every new behaviour needs a test. Safety-controller changes need negative-path tests.
 - Run tests: `cd backend && .venv/Scripts/python -m pytest -q` (Windows) or `.venv/bin/python -m pytest -q`.
 - Integration tests that need the live stack are marked `@pytest.mark.live` and skipped unless `MCOP_LIVE=1`.

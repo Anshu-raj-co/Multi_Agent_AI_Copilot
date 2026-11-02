@@ -9,7 +9,7 @@ A profile can only change `guardrails` (safety.json) and these per-experiment fi
 `fault_latency_p95_max_ms`, `max_duration_s` (shorten only). Every override is **tighten-only**: guardrail numbers and response limits may only go down versus the default
 config, and declared expected statuses may only be removed (enforced in the loader; tested). It cannot change targets, mechanisms, blast radius, the compose project or the
 data dir, and it cannot add experiments. Every value still passes the normal bounds checks. The run lock is shared.
-Each run record stores `config_profile`. The dashboard refuses to start while a profile is set (`rp serve` exits
+Each run record stores `config_profile`. The dashboard refuses to start while a profile is set (`mcop serve` exits
 with an error), so profiles are CLI-only and cannot be selected from the picker.
 
 | Profile | Change | Expected result |
@@ -20,7 +20,7 @@ with an error), so profiles are CLI-only and cannot be selected from the picker.
 
 ```bash
 cd backend
-MCOP_CONFIG_PROFILE=guardrail-demo-error-rate .venv/bin/rp run --type dependency_failure --target influxDB \
+MCOP_CONFIG_PROFILE=guardrail-demo-error-rate .venv/bin/mcop run --type dependency_failure --target influxDB \
   --duration 12 --approved-by "<you>" --hypothesis "GUARDRAIL-DEMO error rate"
 ```
 Evidence: `reports/guardrail-demo/`.

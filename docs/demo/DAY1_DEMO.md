@@ -30,6 +30,6 @@ slower with `MCOP_DEMO_PAUSE=3`.
 - **Not yet:** AI analyst, dashboard, more experiment types (Phases 3–6 in `docs/ROADMAP.md`).
 
 ## If something goes wrong on stage
-- `READY` not shown → `cd backend && .venv/Scripts/python -m resiliencepilot status`; read the latch reason; `reset --operator … --note …`.
+- `READY` not shown → `cd backend && .venv/Scripts/python -m multiagent_copilot status`; read the latch reason; `reset --operator … --note …`.
 - Forwarder left paused → `./scripts/kill-switch.sh` (exits non-zero if it could not verify).
 - Docker Desktop "unable to start" → quit it fully and relaunch.

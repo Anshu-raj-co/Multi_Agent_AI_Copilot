@@ -1,4 +1,4 @@
-# ResiliencePilot SDV: the A-to-Z guide
+# Multi-Agent Copilot: the A-to-Z guide
 
 A complete, beginner-friendly guide to the project. Every technical word is explained in brackets the first time it
 appears, and there is a glossary at the end. Every number in this guide comes from a real run recorded in `reports/`;
@@ -8,7 +8,7 @@ nothing is invented.
 1. [The project in 60 seconds](#1-the-project-in-60-seconds)
 2. [The problem we found](#2-the-problem-we-found)
 3. [The system we test (the Eclipse SDV blueprint)](#3-the-system-we-test-the-eclipse-sdv-blueprint)
-4. [How ResiliencePilot works: all the parts](#4-how-resiliencepilot-works-all-the-parts)
+4. [How Multi-Agent Copilot works: all the parts](#4-how-multi-agent-copilot-works-all-the-parts)
 5. [The pipelines (how data and actions flow)](#5-the-pipelines-how-data-and-actions-flow)
 6. [The three experiments](#6-the-three-experiments)
 7. [The safety model](#7-the-safety-model)
@@ -39,7 +39,7 @@ The usual way to check that such a server is "healthy" is to ask it something an
 the vehicle data has stopped updating. The answer looks healthy, but the data is **stale** (old, no longer being
 refreshed). A normal health check would say everything is fine.
 
-**ResiliencePilot** is a tool that:
+**Multi-Agent Copilot** is a tool that:
 1. Watches the API like a real client and judges health by **how old the vehicle data is**, not by the HTTP code.
 2. Breaks things on purpose, in a safe and controlled way (**fault injection**: deliberately causing a failure to
    see how the system reacts), for at most 30 seconds.
@@ -113,16 +113,16 @@ it**, not a simplified copy.
 
 Two small local adaptations (we never edit the blueprint files themselves):
 - **Network type:** the blueprint uses `overlay` networks, which need Docker Swarm (Docker's multi-machine cluster
-  mode). Our override file `config/compose/resiliencepilot.override.yaml` switches them to `bridge` (single-machine
+  mode). Our override file `config/compose/multiagent-copilot.override.yaml` switches them to `bridge` (single-machine
   networks) with the same layout (decision D-002).
 - **Line endings:** on Windows, Git can convert file line endings and break a database start-up script; `stack-up.sh`
   fixes this automatically (D-005).
 
 ---
 
-## 4. How ResiliencePilot works: all the parts
+## 4. How Multi-Agent Copilot works: all the parts
 
-Our code is a **Python** package in `backend/resiliencepilot/`. Each file has one job:
+Our code is a **Python** package in `backend/multiagent_copilot/`. Each file has one job:
 
 | Layer | File | Job, in plain English |
 |---|---|---|
@@ -141,9 +141,9 @@ Our code is a **Python** package in `backend/resiliencepilot/`. Each file has on
 | | `discover.py` | Re-discovers how containers depend on each other from `docker inspect` and compares it with our map. |
 | | `insights.py` | Packs score, plan and findings for the dashboard. |
 | **Advise** | `ai.py` | The optional AI advisor (section 10). |
-| **Interfaces** | `__main__.py` | The `rp` command-line tool. |
+| **Interfaces** | `__main__.py` | The `mcop` command-line tool. |
 | | `api.py` + `static/dashboard.html` | The local web server and the dashboard page (section 9). |
-| | `explainer.py` | Builds a standalone HTML report of a run (`rp report`). |
+| | `explainer.py` | Builds a standalone HTML report of a run (`mcop report`). |
 
 Other important folders:
 
@@ -170,7 +170,7 @@ flowchart LR
   FWD -->|Zenoh| ZR[Zenoh router] -->|Zenoh| CON[fms-consumer]
   CON -->|write| IDB[(InfluxDB)]
   SRV[fms-server<br/>rFMS API] -->|query| IDB
-  CLIENT[Fleet operator / ResiliencePilot] -->|HTTP GET| SRV
+  CLIENT[Fleet operator / Multi-Agent Copilot] -->|HTTP GET| SRV
 ```
 
 (**gRPC**: a fast way for programs to call each other over a network.) If any link from the forwarder to InfluxDB
@@ -203,7 +203,7 @@ A real 12-second run (`reports/day1/20261010T094045Z-3155f1.json`): fault applie
 ### 5.3 The evidence and analysis pipeline
 
 ```
-run record (JSON) → rp score → rp findings → rp plan → (optional) rp advise (AI)
+run record (JSON) → mcop score → mcop findings → mcop plan → (optional) mcop advise (AI)
          └──────────→ dashboard /api/insights ────────────┘
 ```
 
@@ -245,11 +245,11 @@ Breaking things on purpose is only acceptable if it is safe. These rules are enf
 
 | Rule | In plain English |
 |---|---|
-| **Sandbox only** | Only exact, allowlisted container names that also carry our Compose project label (`resiliencepilot-sdv`). Nothing else on the machine can be touched. |
+| **Sandbox only** | Only exact, allowlisted container names that also carry our Compose project label (`multiagent-copilot`). Nothing else on the machine can be touched. |
 | **Allowlist only** | Only the 3 predefined experiments. Requests with unknown fields are rejected (strict validation). |
 | **One at a time** | A lock file (`backend/data/run.lock`) stops two experiments running at once, even from two terminals. |
 | **30-second cap** | A **watchdog** (an independent timer thread that forces a rollback when time runs out) enforces the limit, even if the main loop hangs. |
-| **Emergency stop** | Three ways: dashboard **Kill** button, `rp stop`, and `scripts/kill-switch.sh`, which works **even if our backend has crashed**. |
+| **Emergency stop** | Three ways: dashboard **Kill** button, `mcop stop`, and `scripts/kill-switch.sh`, which works **even if our backend has crashed**. |
 | **Rollback always** | On completion, cancel, timeout, lost observation, any error, or a guardrail trip. |
 | **Guardrails** | Abort early on unexpected errors, slowness (latency above 5 times normal), or any change to a container outside the experiment's **blast radius** (the set of things an experiment is allowed to affect). All three guards (error rate, latency, blast radius) have each stopped a live run (§13). |
 | **Demo profiles** | `MCOP_CONFIG_PROFILE=guardrail-demo-…` loads a labelled overlay with deliberately tight thresholds, used only to show the guardrails firing live. Profiles are **tighten-only** (a value can only get stricter) and **CLI-only** (the dashboard refuses to start with one set). |
@@ -285,8 +285,8 @@ dependency_failure 61.6.
 
 ## 9. The frontend (the live dashboard)
 
-Start it with `rp serve`, then open **http://127.0.0.1:8765/**. It is one HTML file
-(`backend/resiliencepilot/static/dashboard.html`, 290 lines) served by the local API.
+Start it with `mcop serve`, then open **http://127.0.0.1:8765/**. It is one HTML file
+(`backend/multiagent_copilot/static/dashboard.html`, 290 lines) served by the local API.
 
 ### 9.1 What is on the page
 
@@ -332,10 +332,10 @@ The page refreshes the live status every 0.5 s.
 
 ### 9.3 What the frontend does not do (yet)
 
-- No dependency-graph picture on the dashboard (it is available as `rp deps`, `rp discover` and in the `rp report`
+- No dependency-graph picture on the dashboard (it is available as `mcop deps`, `mcop discover` and in the `mcop report`
   HTML page).
-- Proposals on the page come from the rule-based planner; the AI ranking is only in `rp advise`.
-- AI advice and report export are CLI commands (`rp advise`, `rp findings`, `rp report`), not dashboard buttons.
+- Proposals on the page come from the rule-based planner; the AI ranking is only in `mcop advise`.
+- AI advice and report export are CLI commands (`mcop advise`, `mcop findings`, `mcop report`), not dashboard buttons.
 
 ---
 
@@ -349,7 +349,7 @@ The page refreshes the live status every 0.5 s.
   `http://127.0.0.1:11434`.
 - **Settings** (`config/ai.json`): temperature 0 and a fixed seed (**temperature** controls randomness; 0 and a fixed
   seed make the answers repeatable), 240 s timeout.
-- **Command:** `rp advise` (or `rp advise --offline` for the rule-based answer with no AI).
+- **Command:** `mcop advise` (or `mcop advise --offline` for the rule-based answer with no AI).
 - **Logging:** every model call is saved with its exact prompts, the raw response, the model name and the validation
   result (`data/ai_calls/<time>.json`; an example is committed in `reports/day2/ai_calls/`).
 
@@ -426,17 +426,17 @@ say so.
 ### 12.1 Product vision: the 12-step core workflow
 
 - [x] 1. Connect to a verified local SDV application (blueprint, 8 containers)
-- [x] 2. Discover and document service dependencies and the real telemetry path (`config/dependency_map.json`, `rp discover`, `docs/recon.md`)
-- [x] 3. Collect a normal operating baseline (`rp baseline`, `reports/day1/baseline-*.json`)
-- [x] 4. AI analyst recommends approved experiments (`rp advise`, plus the rule-based planner)
-- [x] 5. Present hypothesis, target, expected symptoms, duration and risks (`config/experiments.json`, `rp plan`)
+- [x] 2. Discover and document service dependencies and the real telemetry path (`config/dependency_map.json`, `mcop discover`, `docs/recon.md`)
+- [x] 3. Collect a normal operating baseline (`mcop baseline`, `reports/day1/baseline-*.json`)
+- [x] 4. AI analyst recommends approved experiments (`mcop advise`, plus the rule-based planner)
+- [x] 5. Present hypothesis, target, expected symptoms, duration and risks (`config/experiments.json`, `mcop plan`)
 - [x] 6. Require approval before execution (`--approved-by`, dashboard confirmation)
 - [x] 7. Inject a bounded, reversible fault through a validated adapter
 - [x] 8. Measure actual behaviour during the fault
 - [x] 9. Roll back and independently verify recovery
 - [ ] 10. Compare predicted vs actual symptoms. **Partly:** hypotheses are recorded per experiment and findings are measured, but there is no side-by-side "predicted vs observed" table.
 - [x] 11. Ranked findings, evidence and remediation (`reports/day2/findings.md`, AI analyst playbooks)
-- [x] 12. Save experiment history and export a reproducible report (`reports/`, `rp report`, `rp findings`)
+- [x] 12. Save experiment history and export a reproducible report (`reports/`, `mcop report`, `mcop findings`)
 
 ### 12.2 Phase 0: Reconnaissance and specification
 
@@ -483,16 +483,16 @@ say so.
 
 ### 12.7 Phase 5: Dashboard and reporting
 
-- [ ] Service/dependency graph with confidence labels. **Partly:** available in the CLI and the `rp report` page, not on the dashboard.
+- [ ] Service/dependency graph with confidence labels. **Partly:** available in the CLI and the `mcop report` page, not on the dashboard.
 - [x] System readiness and live telemetry state
-- [ ] AI-ranked proposals. **Partly:** the dashboard picker shows the rule-based ranking with reasons, predicted symptoms and risks; the AI ranking is in the CLI (`rp advise`).
+- [ ] AI-ranked proposals. **Partly:** the dashboard picker shows the rule-based ranking with reasons, predicted symptoms and risks; the AI ranking is in the CLI (`mcop advise`).
 - [x] Human approval controls (pick one experiment, approve with your typed name; recorded with the run)
 - [x] Live experiment state and emergency stop
 - [x] Fault status, rollback status and recovery verification
 - [ ] Predicted vs observed comparison. **Partly** (see 12.1 step 10).
 - [x] Evidence-backed findings
 - [x] Experiment history (Recent runs)
-- [ ] Report export from the UI. **Partly:** reports are exported from the CLI (`rp report`, `rp findings`).
+- [ ] Report export from the UI. **Partly:** reports are exported from the CLI (`mcop report`, `mcop findings`).
 - [x] Real backend state only; no UI action can bypass the safety controller (tested)
 
 ### 12.8 Phase 6: Integration and hackathon readiness
@@ -529,7 +529,7 @@ say so.
 ### 12.10 Structure, Git and teamwork
 
 - [x] `CLAUDE.md`, `README.md`, `.gitignore`, `docs/*`, `contracts/`, `config/`, `backend/`, `backend/tests/`, `reports/`, `scripts/`
-- [ ] Separate `frontend/` and `experiments/` folders. **Equivalent instead:** the dashboard lives in `backend/resiliencepilot/static/` and the experiment catalogue in `config/experiments.json` (the brief allows equivalent locations).
+- [ ] Separate `frontend/` and `experiments/` folders. **Equivalent instead:** the dashboard lives in `backend/multiagent_copilot/static/` and the experiment catalogue in `config/experiments.json` (the brief allows equivalent locations).
 - [x] Feature branches, PRs, `main` kept stable, no force-push, no secrets
 - [x] Coordination files (`CURRENT_STATUS.md`, `TASK_BOARD.md`, `HANDOFF.md`)
 - [ ] Five named teammates. **Partly:** the task board defines 5 roles; names in `docs/TEAM_FORM_INFO.md` are still TO FILL.
@@ -610,15 +610,15 @@ where `fms-server` and `fms-consumer` run emulated; timings are not directly com
 Prerequisites: Docker Desktop (running), Python 3.13, Git.
 
 ```bash
-git clone https://github.com/Anshu-raj-co/ResiliencePilot.git && cd ResiliencePilot
+git clone https://github.com/Anshu-raj-co/Multi_Agent_AI_Copilot.git && cd Multi_Agent_AI_Copilot
 git -c core.longpaths=true submodule update --init    # long-paths flag avoids "Filename too long" on Windows
 ./scripts/stack-up.sh && ./scripts/stack-status.sh     # starts 8 containers; status exits 1 if any is down
 cd backend
 python3.13 -m venv .venv                               # a private Python environment for this project
 .venv/bin/pip install -e ".[test]"
 .venv/bin/python -m pytest -q                          # expect 317 passed, 11 skipped
-.venv/bin/rp status                                    # must say READY
-.venv/bin/rp serve                                     # dashboard at http://127.0.0.1:8765/
+.venv/bin/mcop status                                    # must say READY
+.venv/bin/mcop serve                                     # dashboard at http://127.0.0.1:8765/
 ```
 
 Stop everything with `./scripts/stack-down.sh`. On Windows use `.venv/Scripts/` instead of `.venv/bin/`.
@@ -632,18 +632,18 @@ Tested on Windows 11 (x86-64) and macOS on Apple Silicon. Free local ports neede
 
 | Command | What it does | Changes anything? |
 |---|---|---|
-| `rp status` | Shows the safety state and the targets | No |
-| `rp observe -n 10` | Live freshness readings | No |
-| `rp baseline -n 60` | Records a baseline | No |
-| `rp run --type T --target X --duration S --approved-by NAME` | Runs one approved experiment | **Yes** (with automatic rollback) |
-| `rp stop` / `scripts/kill-switch.sh` | Emergency stop | Rolls back |
-| `rp reset --operator NAME --note TEXT` | Clears a latch after a human check | Safety state only |
-| `rp runs` / `rp show RUN_ID` | Lists runs / shows one with a chart | No |
-| `rp score` / `rp plan` / `rp findings` | Score, next-experiment ranking, findings report | No |
-| `rp deps` / `rp discover` | Dependency map / re-discovered from Docker | No |
-| `rp advise [--offline]` | AI planner and analyst | No |
-| `rp report` | Standalone HTML explainer of a run | No |
-| `rp serve` | Dashboard and local API | **Yes**: pick one experiment, approve with your typed name |
+| `mcop status` | Shows the safety state and the targets | No |
+| `mcop observe -n 10` | Live freshness readings | No |
+| `mcop baseline -n 60` | Records a baseline | No |
+| `mcop run --type T --target X --duration S --approved-by NAME` | Runs one approved experiment | **Yes** (with automatic rollback) |
+| `mcop stop` / `scripts/kill-switch.sh` | Emergency stop | Rolls back |
+| `mcop reset --operator NAME --note TEXT` | Clears a latch after a human check | Safety state only |
+| `mcop runs` / `mcop show RUN_ID` | Lists runs / shows one with a chart | No |
+| `mcop score` / `mcop plan` / `mcop findings` | Score, next-experiment ranking, findings report | No |
+| `mcop deps` / `mcop discover` | Dependency map / re-discovered from Docker | No |
+| `mcop advise [--offline]` | AI planner and analyst | No |
+| `mcop report` | Standalone HTML explainer of a run | No |
+| `mcop serve` | Dashboard and local API | **Yes**: pick one experiment, approve with your typed name |
 
 ---
 
