@@ -5,7 +5,7 @@
     .venv/bin/python ../scripts/make_ppt.py [--video-url URL] [--out PATH]
 
 Every number on the slides is read from committed evidence at build time (run records under reports/, scores via
-resiliencepilot.scoring) except the test counts, which are pinned below and must match the last `pytest -q`.
+multiagent_copilot.scoring) except the test counts, which are pinned below and must match the last `pytest -q`.
 """
 from __future__ import annotations
 
@@ -23,7 +23,7 @@ from pptx.util import Emu, Inches, Pt
 
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "backend"))
-from resiliencepilot.scoring import load_runs, score_run, summarise  # noqa: E402
+from multiagent_copilot.scoring import load_runs, score_run, summarise  # noqa: E402
 
 # Pinned from `cd backend && .venv/bin/python -m pytest -q` on feat/data-quality (macOS): update when tests change.
 TESTS_CORE = 317          # existing suite, unchanged

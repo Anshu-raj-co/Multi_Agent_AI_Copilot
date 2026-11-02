@@ -9,7 +9,7 @@ Sources (every value in the page is taken from one of these, with its path and, 
   reports/day2/scores.json, reports/day2/findings.md, reports/day2/annotations.json
   reports/day2/ai_calls/*.json                        AI call logs (committed)
   config/dependency_map.json, config/safety.json, config/experiments.json, config/ai.json
-  Fleet Management/fleet-management/fms-blueprint-compose*.yaml, config/compose/resiliencepilot.override.yaml
+  Fleet Management/fleet-management/fms-blueprint-compose*.yaml, config/compose/multiagent_copilot.override.yaml
 
 Usage: python3 scripts/build_scene_data.py [--check]
   --check  does not write; exit 1 if the embedded data is out of date or the offline check fails
@@ -31,7 +31,7 @@ END = "</script><!-- /SCENE-DATA -->"
 RUN_DIRS = ["reports/day1", "reports/day2", "reports/guardrail-demo"]
 BLUEPRINT = "Fleet Management/fleet-management"
 COMPOSE_FILES = [f"{BLUEPRINT}/fms-blueprint-compose.yaml", f"{BLUEPRINT}/fms-blueprint-compose-zenoh.yaml",
-                 "config/compose/resiliencepilot.override.yaml"]
+                 "config/compose/multiagent_copilot.override.yaml"]
 
 
 def rel(path: str) -> str:

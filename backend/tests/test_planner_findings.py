@@ -4,9 +4,9 @@ from __future__ import annotations
 import copy
 import json
 
-from resiliencepilot.config import REPO_ROOT
-from resiliencepilot.findings import derive_findings, render_markdown
-from resiliencepilot.planner import plan, render_text
+from multiagent_copilot.config import REPO_ROOT
+from multiagent_copilot.findings import derive_findings, render_markdown
+from multiagent_copilot.planner import plan, render_text
 
 from test_scoring import STALL, _poll, _rec
 
@@ -115,7 +115,7 @@ def test_unscorable_runs_produce_no_findings_but_are_listed_with_annotations():
 
 
 def test_cli_plan_and_findings_are_read_only(tmp_path, monkeypatch, capsys):
-    import resiliencepilot.__main__ as cli
+    import multiagent_copilot.__main__ as cli
     monkeypatch.setattr(cli, "build", lambda *_: (_ for _ in ()).throw(AssertionError("safety objects built")))
     (tmp_path / "20261010T180000Z-a.json").write_text(json.dumps(_rec(STALL, run_id="20261010T180000Z-a")), "utf-8")
     (tmp_path / "annotations.json").write_text(json.dumps({"_about": "x", "20261010T180000Z-a": "first try"}), "utf-8")

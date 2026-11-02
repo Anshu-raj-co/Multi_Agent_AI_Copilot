@@ -1,7 +1,7 @@
-from resiliencepilot.baseline import collect_baseline, summarise
-from resiliencepilot.observation import parse_rfc3339
-from resiliencepilot.sdv_adapter import parse_vehicle_statuses
-from resiliencepilot.telemetry import Freshness, FreshnessTracker
+from multiagent_copilot.baseline import collect_baseline, summarise
+from multiagent_copilot.observation import parse_rfc3339
+from multiagent_copilot.sdv_adapter import parse_vehicle_statuses
+from multiagent_copilot.telemetry import Freshness, FreshnessTracker
 
 from helpers import obs
 

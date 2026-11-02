@@ -308,7 +308,7 @@ def slide3(prs):
 
 def slide4(prs):
     s = frame(prs, 4, "Solution architecture", "Solution Architecture & Safety Framework", (
-        "Sources: CLAUDE.md safety rules 1-7, config/safety.json, backend/resiliencepilot/guardrails.py, scripts/kill-switch.sh. "
+        "Sources: CLAUDE.md safety rules 1-7, config/safety.json, backend/multiagent_copilot/guardrails.py, scripts/kill-switch.sh. "
         "Watchdog is a thread in the backend with a 30 s total cap including grace; config may only lower it."))
     picture(s, DEMO / "dashboard-day2.png", LEFT, 1.5, 3.9, 5.1, name="Dashboard Day 2")
     text(s, LEFT, 6.65, 3.9, 0.25, [{"runs": ["Local dashboard: data age, HTTP status, phases, score"], "size": 10, "color": MUTED}])
@@ -386,7 +386,7 @@ def slide5(prs):
 
 def slide6(prs):
     s = frame(prs, 6, "Failure scenarios selected", "Selected Chaos Experiments & AI Ordering", (
-        "Sources: docs/PROJECT_A_TO_Z.md results table and top findings; backend/resiliencepilot/planner.py docstring. "
+        "Sources: docs/PROJECT_A_TO_Z.md results table and top findings; backend/multiagent_copilot/planner.py docstring. "
         "The name-lookup failures after the database returned are observed; DNS caching as the cause is a hypothesis, not verified."))
     exps = [("telemetry_stall", "docker pause fms-forwarder", "Vehicle-edge publisher freeze, e.g. a cellular stall.",
              "HTTP 200 on 100 % of fault polls while data froze: the HTTP 200 illusion of health."),

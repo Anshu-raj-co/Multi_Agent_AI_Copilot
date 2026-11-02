@@ -5,10 +5,10 @@ import time
 
 import pytest
 
-from resiliencepilot.config import ExperimentSpec
-from resiliencepilot.evidence import EvidenceStore
-from resiliencepilot.orchestrator import ExperimentRunner
-from resiliencepilot.safety import Busy, Latched, RequestRejected, SafetyController, SafetyError
+from multiagent_copilot.config import ExperimentSpec
+from multiagent_copilot.evidence import EvidenceStore
+from multiagent_copilot.orchestrator import ExperimentRunner
+from multiagent_copilot.safety import Busy, Latched, RequestRejected, SafetyController, SafetyError
 
 from helpers import FakeDocker, FakeObserver, FakeWorld, make_config
 
@@ -254,7 +254,7 @@ def test_reset_requires_operator(env):
 import json
 import os
 
-from resiliencepilot.safety import pid_alive
+from multiagent_copilot.safety import pid_alive
 
 
 def _write_lock(cfg, pid, run_id="other-run"):

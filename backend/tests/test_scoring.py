@@ -6,8 +6,8 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
-from resiliencepilot.config import REPO_ROOT
-from resiliencepilot.scoring import SILENT_PENALTY, WEIGHTS, load_runs, render_text, score_run, summarise
+from multiagent_copilot.config import REPO_ROOT
+from multiagent_copilot.scoring import SILENT_PENALTY, WEIGHTS, load_runs, render_text, score_run, summarise
 
 T0 = datetime(2026, 10, 10, 18, 0, 0, tzinfo=timezone.utc)
 ALL = ["csv-provider", "databroker", "fms-consumer", "fms-forwarder", "fms-server", "fms-zenoh-router", "grafana",
@@ -148,7 +148,7 @@ def test_golden_committed_silent_after_recovery_run():
 
 
 def test_cli_score(tmp_path, monkeypatch, capsys):
-    import resiliencepilot.__main__ as cli
+    import multiagent_copilot.__main__ as cli
     monkeypatch.setattr(cli, "build", lambda *_: (_ for _ in ()).throw(AssertionError("safety objects built")))
     for name in ("20261010T180000Z-a", "20261010T180001Z-b"):
         (tmp_path / f"{name}.json").write_text(json.dumps(_rec(STALL, run_id=name)), encoding="utf-8")

@@ -6,7 +6,7 @@ RP_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PY="$RP_ROOT/backend/.venv/Scripts/python"; [ -x "$PY" ] || PY="$RP_ROOT/backend/.venv/bin/python"
 export PYTHONIOENCODING=utf-8
 [ -t 1 ] && export FORCE_COLOR=1        # keep colours on screen; plain text when logging to a file
-rp() { (cd "$RP_ROOT/backend" && "$PY" -m resiliencepilot "$@"); }
+rp() { (cd "$RP_ROOT/backend" && "$PY" -m multiagent_copilot "$@"); }
 APPROVER="${RP_APPROVER:-demo-operator}"
 PAUSE="${RP_DEMO_PAUSE:-0}"             # seconds to wait between steps when presenting
 say() { sleep "$PAUSE"; printf '\n\033[1;36m=== %s ===\033[0m\n' "$*"; }

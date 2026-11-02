@@ -3,7 +3,7 @@
 #  1. writes the EMERGENCY_STOP file -> a running experiment rolls back at its next poll and new runs are refused
 #  2. directly restores every allowlisted target in the sandbox project: unpause if paused, start if stopped
 # Exit code 0 only if every allowlisted target is verified unpaused afterwards.
-# Afterwards: python -m resiliencepilot reset --operator NAME --note "..."
+# Afterwards: python -m multiagent_copilot reset --operator NAME --note "..."
 set -uo pipefail   # no -e: one failing docker call must not skip the remaining rollback steps
 RP_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 read -r PROJECT DATA_DIR TARGETS < <(python - "$RP_ROOT" <<'PY'

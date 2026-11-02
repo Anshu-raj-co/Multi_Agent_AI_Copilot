@@ -9,11 +9,11 @@ import time
 
 import pytest
 
-from resiliencepilot import safety
-from resiliencepilot.config import ExperimentSpec
-from resiliencepilot.evidence import EvidenceStore
-from resiliencepilot.orchestrator import ExperimentRunner
-from resiliencepilot.safety import Busy, IO_RETRY_DELAYS_S, SafetyController, _retry_io
+from multiagent_copilot import safety
+from multiagent_copilot.config import ExperimentSpec
+from multiagent_copilot.evidence import EvidenceStore
+from multiagent_copilot.orchestrator import ExperimentRunner
+from multiagent_copilot.safety import Busy, IO_RETRY_DELAYS_S, SafetyController, _retry_io
 
 from helpers import FakeDocker, FakeObserver, FakeWorld, make_config
 

@@ -11,6 +11,6 @@ rp_compose() {
     --project-directory "$BLUEPRINT_DIR" \
     -f "$BLUEPRINT_DIR/fms-blueprint-compose.yaml" \
     -f "$BLUEPRINT_DIR/fms-blueprint-compose-zenoh.yaml" \
-    -f "$RP_ROOT/config/compose/resiliencepilot.override.yaml" \
+    -f "$RP_ROOT/config/compose/multiagent_copilot.override.yaml" \
     "$@"
 }

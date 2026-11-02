@@ -6,11 +6,11 @@ import time
 import pytest
 from fastapi.testclient import TestClient
 
-from resiliencepilot import api as api_mod
-from resiliencepilot.api import DASHBOARD_DURATION_S, HOST, create_app, dashboard_request
-from resiliencepilot.config import ExperimentSpec
-from resiliencepilot.evidence import EvidenceStore
-from resiliencepilot.safety import SafetyController
+from multiagent_copilot import api as api_mod
+from multiagent_copilot.api import DASHBOARD_DURATION_S, HOST, create_app, dashboard_request
+from multiagent_copilot.config import ExperimentSpec
+from multiagent_copilot.evidence import EvidenceStore
+from multiagent_copilot.safety import SafetyController
 
 from helpers import FakeDocker, FakeObserver, FakeWorld, make_config
 
@@ -206,7 +206,7 @@ def test_insights_local_scores_a_dashboard_run(env):
 
 
 def test_insights_failure_never_breaks_the_controls(env, monkeypatch):
-    import resiliencepilot.insights as ins
+    import multiagent_copilot.insights as ins
     monkeypatch.setattr(ins, "build_insights", lambda *a, **k: (_ for _ in ()).throw(RuntimeError("boom")))
     r = env["a"].get("/api/insights")
     assert r.status_code == 500 and "boom" in r.json()["detail"]
@@ -227,7 +227,7 @@ def test_page_picks_one_catalogue_id_and_a_typed_name():
 
 
 def test_proposals_failure_never_blocks_a_run(env, monkeypatch):
-    import resiliencepilot.planner as pl
+    import multiagent_copilot.planner as pl
     monkeypatch.setattr(pl, "plan", lambda *a, **k: (_ for _ in ()).throw(RuntimeError("boom")))
     assert env["a"].get("/api/proposals").status_code == 500
     r = env["a"].post("/api/run", json=PICK)
@@ -249,6 +249,6 @@ def test_dashboard_refuses_to_run_with_a_config_profile(tmp_path):
 def test_serve_with_a_profile_set_fails_before_binding(monkeypatch):
     monkeypatch.setenv("RP_CONFIG_PROFILE", "guardrail-demo-error-rate")
     monkeypatch.setattr("uvicorn.run", lambda *a, **k: (_ for _ in ()).throw(AssertionError("server started")))
-    monkeypatch.setattr("resiliencepilot.docker_cli.DockerCLI", lambda: FakeDocker(FakeWorld()))
+    monkeypatch.setattr("multiagent_copilot.docker_cli.DockerCLI", lambda: FakeDocker(FakeWorld()))
     with pytest.raises(ValueError, match="RP_CONFIG_PROFILE"):
         api_mod.serve()

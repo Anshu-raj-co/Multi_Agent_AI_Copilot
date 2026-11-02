@@ -3,8 +3,8 @@ from __future__ import annotations
 
 import pytest
 
-from resiliencepilot.discover import _host_path, diff_against_map, discover, node_from_inspect, read_text_file, to_json
-from resiliencepilot.docker_cli import DockerCLI, DockerError
+from multiagent_copilot.discover import _host_path, diff_against_map, discover, node_from_inspect, read_text_file, to_json
+from multiagent_copilot.docker_cli import DockerCLI, DockerError
 
 PROJECT = "resiliencepilot-sdv"
 
@@ -188,7 +188,7 @@ class _ReadOnlyDocker:
 
 
 def test_run_discovery_is_read_only_and_ignores_other_projects():
-    from resiliencepilot.discover import run_discovery
+    from multiagent_copilot.discover import run_discovery
     stranger = _info("intruder", env=["X=http://databroker:1"])
     stranger["Config"]["Labels"]["com.docker.compose.project"] = "someone-else"
     docker = _ReadOnlyDocker(_stack() + [stranger])
@@ -199,8 +199,8 @@ def test_run_discovery_is_read_only_and_ignores_other_projects():
 
 
 def test_render_text_lists_edges_and_diff():
-    from resiliencepilot.discover import load_map, render_text, run_discovery
-    from resiliencepilot.config import REPO_ROOT
+    from multiagent_copilot.discover import load_map, render_text, run_discovery
+    from multiagent_copilot.config import REPO_ROOT
     text = render_text(run_discovery(_ReadOnlyDocker(_stack()), PROJECT, load_map(REPO_ROOT), read_file=_FILES.get))
     assert "fms-forwarder    -> databroker       high" in text
     assert "discovered only    fms-forwarder -> csv-provider  (low confidence)" in text
@@ -210,7 +210,7 @@ def test_render_text_lists_edges_and_diff():
 
 def test_cli_discover_json_and_out(tmp_path, monkeypatch, capsys):
     import json
-    import resiliencepilot.__main__ as cli
+    import multiagent_copilot.__main__ as cli
     monkeypatch.setattr(cli, "DockerCLI", lambda: _ReadOnlyDocker(_stack()))
     monkeypatch.setattr(cli, "build", lambda *_: (_ for _ in ()).throw(AssertionError("safety objects built")))
     out = tmp_path / "sub" / "discovery.json"

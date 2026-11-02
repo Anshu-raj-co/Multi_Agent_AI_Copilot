@@ -20,7 +20,7 @@
     {"from": "fms-consumer", "to": "influxDB", "protocol": "HTTP write (measurements header/snapshot, field createdDateTime)", "evidence": ["influxdb/fms-demo.env:4 INFLUXDB_URI", "components/fms-consumer/src/main.rs:44 write_vehicle_status"], "confidence": ["source", "experiment"], "on_telemetry_path": true},
     {"from": "fms-server", "to": "influxDB", "protocol": "HTTP Flux query, last()", "evidence": ["influxdb/fms-demo.env:4 INFLUXDB_URI", "components/fms-server/src/influx_reader.rs:226 get_vehiclesstatuses"], "confidence": ["source", "experiment"], "on_telemetry_path": true},
     {"from": "grafana", "to": "influxDB", "protocol": "Flux datasource", "evidence": ["influxdb/init-scripts/create-fms-token.sh:40"], "confidence": ["source"], "on_telemetry_path": false},
-    {"from": "resiliencepilot", "to": "fms-server", "protocol": "HTTP GET /rfms/vehiclestatuses?latestOnly=true (read-only)", "evidence": ["backend/resiliencepilot/sdv_adapter.py"], "confidence": ["source"], "on_telemetry_path": false},
+    {"from": "resiliencepilot", "to": "fms-server", "protocol": "HTTP GET /rfms/vehiclestatuses?latestOnly=true (read-only)", "evidence": ["backend/multiagent_copilot/sdv_adapter.py"], "confidence": ["source"], "on_telemetry_path": false},
     {"from": "resiliencepilot", "to": "fms-forwarder", "protocol": "docker pause/unpause (allowlisted control)", "evidence": ["config/experiments.json"], "confidence": ["source"], "on_telemetry_path": false}
   ],
   "timestamps": {

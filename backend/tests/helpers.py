@@ -7,9 +7,9 @@ from dataclasses import replace
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from resiliencepilot.config import SafetyConfig
-from resiliencepilot.docker_cli import ContainerState, DockerError, SnapshotEntry
-from resiliencepilot.observation import Observation
+from multiagent_copilot.config import SafetyConfig
+from multiagent_copilot.docker_cli import ContainerState, DockerError, SnapshotEntry
+from multiagent_copilot.observation import Observation
 
 T0 = datetime(2026, 10, 10, 8, 0, 0, tzinfo=timezone.utc)
 PROJECT = "resiliencepilot-sdv"

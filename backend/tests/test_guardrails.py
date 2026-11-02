@@ -5,12 +5,12 @@ from dataclasses import replace
 
 import pytest
 
-from resiliencepilot.config import ExperimentSpec, Guardrails
-from resiliencepilot.docker_cli import SnapshotEntry
-from resiliencepilot.evidence import EvidenceStore
-from resiliencepilot.guardrails import (ErrorRateGuard, LatencyGuard, blast_radius_changes, latency_threshold, p95)
-from resiliencepilot.orchestrator import ExperimentRunner
-from resiliencepilot.safety import SafetyController
+from multiagent_copilot.config import ExperimentSpec, Guardrails
+from multiagent_copilot.docker_cli import SnapshotEntry
+from multiagent_copilot.evidence import EvidenceStore
+from multiagent_copilot.guardrails import (ErrorRateGuard, LatencyGuard, blast_radius_changes, latency_threshold, p95)
+from multiagent_copilot.orchestrator import ExperimentRunner
+from multiagent_copilot.safety import SafetyController
 
 from helpers import FakeDocker, FakeObserver, FakeWorld, make_config
 

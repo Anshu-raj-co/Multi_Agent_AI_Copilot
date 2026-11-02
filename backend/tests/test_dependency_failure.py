@@ -9,11 +9,11 @@ import time
 
 import pytest
 
-from resiliencepilot.config import ExperimentSpec, load_experiment_catalog
-from resiliencepilot.evidence import EvidenceStore
-from resiliencepilot.guardrails import ErrorRateGuard
-from resiliencepilot.orchestrator import ExperimentRunner
-from resiliencepilot.safety import RequestRejected, SafetyController
+from multiagent_copilot.config import ExperimentSpec, load_experiment_catalog
+from multiagent_copilot.evidence import EvidenceStore
+from multiagent_copilot.guardrails import ErrorRateGuard
+from multiagent_copilot.orchestrator import ExperimentRunner
+from multiagent_copilot.safety import RequestRejected, SafetyController
 
 from helpers import FakeDocker, FakeObserver, FakeWorld, make_config
 
@@ -210,7 +210,7 @@ def test_B_declared_symptom_cannot_be_combined_with_error_tolerance():
 
 
 def test_B_global_tolerance_is_forced_to_zero_when_a_symptom_is_declared(tmp_path):
-    from resiliencepilot.config import Guardrails
+    from multiagent_copilot.config import Guardrails
     cfg = make_config(tmp_path, guardrails=Guardrails(max_error_rate=0.5))
     world = FakeWorld()
     docker = FakeDocker(world)

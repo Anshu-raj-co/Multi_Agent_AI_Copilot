@@ -1,4 +1,4 @@
-"""Operator CLI.  python -m resiliencepilot <command>
+"""Operator CLI.  python -m multiagent_copilot <command>
 
   status                     safety controller state + target containers
   observe [-n N]             poll the rFMS API and show freshness (read-only)
@@ -99,7 +99,7 @@ def _utf8_stdio() -> None:
 
 def main(argv: list[str] | None = None) -> int:
     _utf8_stdio()
-    p = argparse.ArgumentParser(prog="resiliencepilot")
+    p = argparse.ArgumentParser(prog="multiagent_copilot")
     sub = p.add_subparsers(dest="cmd", required=True)
     sub.add_parser("status")
     so = sub.add_parser("observe"); so.add_argument("-n", type=int, default=10); so.add_argument("-i", type=float, default=0.5)
@@ -298,7 +298,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"{C['b']}Experiment plan{C['x']}\n  type: {args.type} ({spec.mechanism})\n  target: {args.target}\n"
               f"  duration: {args.duration}s (watchdog at +{cfg.watchdog_grace_s}s)\n  hypothesis: {args.hypothesis}\n"
               f"  expected symptoms: {list(spec.expected_symptoms)}\n  risks: {list(spec.risks)}\n"
-              f"  stop anytime: Ctrl+C here, `python -m resiliencepilot stop`, or scripts/kill-switch.sh")
+              f"  stop anytime: Ctrl+C here, `python -m multiagent_copilot stop`, or scripts/kill-switch.sh")
         if not args.yes and input(f"Approve as {args.approved_by}? [y/N] ").strip().lower() != "y":
             print("not approved; nothing executed")
             return 1

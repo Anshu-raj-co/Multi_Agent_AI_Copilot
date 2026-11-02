@@ -2,7 +2,7 @@
 
 Profiles are overlays on `config/safety.json` and `config/experiments.json`, selected with `RP_CONFIG_PROFILE=<name>`.
 They exist to show the automatic guardrails stopping a run **live**, using deliberately tight thresholds. They are not
-for normal use. The allowlist is `CONFIG_PROFILES` in `backend/resiliencepilot/config.py`; any other name is refused.
+for normal use. The allowlist is `CONFIG_PROFILES` in `backend/multiagent_copilot/config.py`; any other name is refused.
 
 A profile can only change `guardrails` (safety.json) and these per-experiment fields: `description`,
 `expected_symptoms`, `risks`, `expected_statuses`, `max_error_rate`, `fault_observer_timeout_s`,

@@ -7,11 +7,11 @@ import json
 import httpx
 import pytest
 
-from resiliencepilot import ai
-from resiliencepilot.ai import (AIConfig, OllamaProvider, ai_analyse, ai_plan, grounding_problem, render_markdown,
+from multiagent_copilot import ai
+from multiagent_copilot.ai import (AIConfig, OllamaProvider, ai_analyse, ai_plan, grounding_problem, render_markdown,
                                 rule_based_analysis)
-from resiliencepilot.findings import derive_findings
-from resiliencepilot.planner import plan
+from multiagent_copilot.findings import derive_findings
+from multiagent_copilot.planner import plan
 
 from test_planner_findings import CATALOG, DEP_MAP, _dep
 from test_scoring import STALL, _poll, _rec
@@ -177,7 +177,7 @@ def test_markdown_marks_provider_and_advisory():
 
 
 def test_cli_advise_offline_never_contacts_ollama(tmp_path, monkeypatch, capsys):
-    import resiliencepilot.__main__ as cli
+    import multiagent_copilot.__main__ as cli
     monkeypatch.setattr(cli, "build", lambda *_: (_ for _ in ()).throw(AssertionError("safety objects built")))
     monkeypatch.setattr(ai, "OllamaProvider", lambda *_: (_ for _ in ()).throw(AssertionError("AI contacted")))
     for r in RUNS:

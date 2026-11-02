@@ -6,7 +6,7 @@ import shutil
 
 import pytest
 
-from resiliencepilot.config import CONFIG_PROFILES, REPO_ROOT, load_experiment_catalog, load_safety_config
+from multiagent_copilot.config import CONFIG_PROFILES, REPO_ROOT, load_experiment_catalog, load_safety_config
 
 
 def _root(tmp_path, profile=None, safety=None, experiments=None):

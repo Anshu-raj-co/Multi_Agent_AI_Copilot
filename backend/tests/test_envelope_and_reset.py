@@ -4,11 +4,11 @@ from datetime import datetime, timezone
 
 import pytest
 
-from resiliencepilot.config import ExperimentSpec, Guardrails, load_experiment_catalog
-from resiliencepilot.evidence import EvidenceStore
-from resiliencepilot.observation import Observation
-from resiliencepilot.orchestrator import ExperimentRunner
-from resiliencepilot.safety import SafetyController, SafetyError
+from multiagent_copilot.config import ExperimentSpec, Guardrails, load_experiment_catalog
+from multiagent_copilot.evidence import EvidenceStore
+from multiagent_copilot.observation import Observation
+from multiagent_copilot.orchestrator import ExperimentRunner
+from multiagent_copilot.safety import SafetyController, SafetyError
 
 from helpers import FakeDocker, FakeObserver, FakeWorld, make_config
 
@@ -125,7 +125,7 @@ def test_envelope_cannot_push_total_fault_time_past_30s():
 
 
 def test_d022_ceilings_are_exactly_8s_and_7500ms():
-    from resiliencepilot import config
+    from multiagent_copilot import config
     assert config.MAX_FAULT_OBSERVER_TIMEOUT_S == 8.0 and config.MAX_FAULT_LATENCY_P95_MS == 7500.0
     assert config.MAX_FAULT_LATENCY_P95_MS < config.MAX_FAULT_OBSERVER_TIMEOUT_S * 1000
 
@@ -201,7 +201,7 @@ def test_envelope_applies_to_fault_polls_only(tmp_path):
 
 
 def test_duration_must_exceed_the_envelope_timeout(tmp_path):
-    from resiliencepilot.safety import RequestRejected
+    from multiagent_copilot.safety import RequestRejected
     world, docker, ctl, runner = build(tmp_path)
     with pytest.raises(RequestRejected, match="must exceed the fault observer timeout"):
         runner.run({**DEP, "duration_s": 2})

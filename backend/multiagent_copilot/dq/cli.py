@@ -1,4 +1,4 @@
-"""`python -m resiliencepilot.dq <generate|ingest|show-quarantine|report>` (docs/DATA_QUALITY.md).
+"""`python -m multiagent_copilot.dq <generate|ingest|show-quarantine|report>` (docs/DATA_QUALITY.md).
 
 Exit codes: 0 ok; 1 bad input; 2 batch rolled back (error rate above threshold, operator review needed).
 """
@@ -22,7 +22,7 @@ def _path(p: str) -> Path:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    ap = argparse.ArgumentParser(prog="python -m resiliencepilot.dq",
+    ap = argparse.ArgumentParser(prog="python -m multiagent_copilot.dq",
                                  description="Data-quality gate for the synthetic logistics feed")
     ap.add_argument("--db", default=str(DEFAULT_DB), help=f"SQLite store (default {DEFAULT_DB.relative_to(REPO_ROOT)})")
     sub = ap.add_subparsers(dest="cmd", required=True)

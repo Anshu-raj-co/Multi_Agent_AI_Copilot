@@ -2,8 +2,8 @@
 import json
 import re
 
-from resiliencepilot.config import REPO_ROOT
-from resiliencepilot.explainer import collect, load_runs, render
+from multiagent_copilot.config import REPO_ROOT
+from multiagent_copilot.explainer import collect, load_runs, render
 
 
 def test_default_run_is_latest_full_length_completed_telemetry_stall():

@@ -1,17 +1,17 @@
-"""Data-quality gate (resiliencepilot.dq): normalizer, batch policy, store, CLI. No Docker, no live stack."""
+"""Data-quality gate (multiagent_copilot.dq): normalizer, batch policy, store, CLI. No Docker, no live stack."""
 import json
 from datetime import datetime, timedelta, timezone
 
 import pytest
 from pydantic import ValidationError
 
-from resiliencepilot.dq import cli
-from resiliencepilot.dq.batch_engine import BatchStatus, ingest_batch, validate_threshold
-from resiliencepilot.dq.generator import generate_feed
-from resiliencepilot.dq.normalizer import TimestampError, normalize_record, parse_timestamp, to_canonical
-from resiliencepilot.dq.report import render_report
-from resiliencepilot.dq.schema import CleanLogisticsRecord, Region
-from resiliencepilot.dq.store import DQStore
+from multiagent_copilot.dq import cli
+from multiagent_copilot.dq.batch_engine import BatchStatus, ingest_batch, validate_threshold
+from multiagent_copilot.dq.generator import generate_feed
+from multiagent_copilot.dq.normalizer import TimestampError, normalize_record, parse_timestamp, to_canonical
+from multiagent_copilot.dq.report import render_report
+from multiagent_copilot.dq.schema import CleanLogisticsRecord, Region
+from multiagent_copilot.dq.store import DQStore
 
 NOW = datetime(2026, 10, 11, 12, 0, 0, tzinfo=timezone.utc)
 VIN = "YV2E4C3A5VB180691"

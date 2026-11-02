@@ -3,11 +3,11 @@ import time
 
 import pytest
 
-from resiliencepilot.config import load_experiment_catalog, load_safety_config
-from resiliencepilot.docker_cli import DockerCLI
-from resiliencepilot.safety import RequestRejected, SafetyController
-from resiliencepilot.sdv_adapter import RfmsObserver
-from resiliencepilot.telemetry import Freshness, FreshnessTracker
+from multiagent_copilot.config import load_experiment_catalog, load_safety_config
+from multiagent_copilot.docker_cli import DockerCLI
+from multiagent_copilot.safety import RequestRejected, SafetyController
+from multiagent_copilot.sdv_adapter import RfmsObserver
+from multiagent_copilot.telemetry import Freshness, FreshnessTracker
 
 pytestmark = pytest.mark.live
 

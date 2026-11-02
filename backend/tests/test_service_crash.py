@@ -3,11 +3,11 @@ import time
 
 import pytest
 
-from resiliencepilot.config import ExperimentSpec
-from resiliencepilot.evidence import EvidenceStore
-from resiliencepilot.faults import PauseFault, StopStartFault, make_fault
-from resiliencepilot.orchestrator import ExperimentRunner
-from resiliencepilot.safety import Latched, RequestRejected, SafetyController, SafetyError
+from multiagent_copilot.config import ExperimentSpec
+from multiagent_copilot.evidence import EvidenceStore
+from multiagent_copilot.faults import PauseFault, StopStartFault, make_fault
+from multiagent_copilot.orchestrator import ExperimentRunner
+from multiagent_copilot.safety import Latched, RequestRejected, SafetyController, SafetyError
 
 from helpers import FakeDocker, FakeObserver, FakeWorld, make_config
 
@@ -176,7 +176,7 @@ def test_injection_latency_and_detection_from_verified_injection_recorded(env):
 
 
 # ---------------- safety-review regressions (feat/day2-service-crash) ----------------
-from resiliencepilot.faults import InjectAborted  # noqa: E402
+from multiagent_copilot.faults import InjectAborted  # noqa: E402
 
 
 def test_M1_inject_refused_after_rollback_started(env):
