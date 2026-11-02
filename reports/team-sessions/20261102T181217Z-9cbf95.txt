@@ -1,0 +1,31 @@
+  [   fault t= 21.48s] HTTP 200  created=18:12:22.131  received=18:12:41.503  [████████████████████████] 19.37s  STALE  <- HTTP 200 but STALE
+  [   fault t= 22.03s] HTTP 200  created=18:12:22.131  received=18:12:42.054  [████████████████████████] 19.92s  STALE  <- HTTP 200 but STALE
+  [   fault t= 22.56s] HTTP 200  created=18:12:22.131  received=18:12:42.590  [████████████████████████] 20.46s  STALE  <- HTTP 200 but STALE
+  [   fault t= 23.11s] HTTP 200  created=18:12:22.131  received=18:12:43.136  [████████████████████████] 21.01s  STALE  <- HTTP 200 but STALE
+  [   fault t= 23.66s] HTTP 200  created=18:12:22.131  received=18:12:43.684  [████████████████████████] 21.55s  STALE  <- HTTP 200 but STALE
+  [   fault t= 24.20s] HTTP 200  created=18:12:22.131  received=18:12:44.224  [████████████████████████] 22.09s  STALE  <- HTTP 200 but STALE
+  [   fault t= 24.75s] HTTP 200  created=18:12:22.131  received=18:12:44.773  [████████████████████████] 22.64s  STALE  <- HTTP 200 but STALE
+  [   fault t= 25.32s] HTTP 200  created=18:12:22.131  received=18:12:45.345  [████████████████████████] 23.21s  STALE  <- HTTP 200 but STALE
+  [   fault t= 25.87s] HTTP 200  created=18:12:22.131  received=18:12:45.894  [████████████████████████] 23.76s  STALE  <- HTTP 200 but STALE
+  [   fault t= 26.41s] HTTP 200  created=18:12:22.131  received=18:12:46.440  [████████████████████████] 24.31s  STALE  <- HTTP 200 but STALE
+  [   fault t= 26.97s] HTTP 200  created=18:12:22.131  received=18:12:46.994  [████████████████████████] 24.86s  STALE  <- HTTP 200 but STALE
+» fault_window_closed  [ACTIVE]  {"stop_reason": "duration_elapsed"}
+» rolling_back  [ROLLING_BACK]
+» rollback_result  [ROLLING_BACK]  {"attempted": true, "verified": true, "by": "orchestrator", "detail": "target running and unpaused"}
+» verifying_recovery  [VERIFYING_RECOVERY]
+  [recovery t= 27.44s] HTTP 200  created=18:12:22.131  received=18:12:47.469  [████████████████████████] 25.34s  STALE  <- HTTP 200 but STALE
+  [recovery t= 27.98s] HTTP 200  created=18:12:22.131  received=18:12:48.013  [████████████████████████] 25.88s  STALE  <- HTTP 200 but STALE
+  [recovery t= 28.53s] HTTP 200  created=18:12:47.662  received=18:12:48.559  [██········|·············]  0.90s  FRESH
+  [recovery t= 29.07s] HTTP 200  created=18:12:48.665  received=18:12:49.100  [█·········|·············]  0.43s  FRESH
+  [recovery t= 29.62s] HTTP 200  created=18:12:48.665  received=18:12:49.643  [██········|·············]  0.98s  FRESH
+  [recovery t= 30.16s] HTTP 200  created=18:12:49.666  received=18:12:50.184  [█·········|·············]  0.52s  FRESH
+» recovery_verified  [VERIFYING_RECOVERY]  {"verified": true, "time_to_first_fresh_s": 1.13, "time_to_verified_s": 2.81, "criteria": "rollback verified by docker inspect (target running and unpaused) AND 3 successive advances of createdDateTime beyond both the last pre-rollback value and the fms-server time of the last fault-window poll, each with HTTP 200 and data_age_s <= 5.0s", "detail": "3 fresh advances observed"}
+» data_gap_measured  [VERIFYING_RECOVERY]  {"stored_statuses": 16, "max_gap_s": 25.531, "median_interval_s": 0.501}
+» finished  [COMPLETED]  {"stop_reason": "duration_elapsed"}
+[Executor] OK (deterministic) run 20261102T181220Z-fb0f7e COMPLETED (stop_reason=duration_elapsed); fault verified True, stale detected True (ttd 5.132 s), HTTP-200 ratio during fault 1.0; rollback verified True by orchestrator; recovery verified True after 2.81 s
+    decision: run completed; hand over to the Analyst
+[Analyst] FALLBACK (deterministic) run 20261102T181220Z-fb0f7e COMPLETED (duration_elapsed); score 45.1; 9 finding(s) over 51 run(s), 2 cite this run
+    decision: F4 silent_during_fault: fms-server serves the last stored status with receivedDateTime = request time and no staleness signal, so the API stays HTTP 200 while vehic [rule-based]; F8 data_loss: fms-consumer drops statuses it cannot write ('failed to write data to influx'); there is no buffer or backfill (verified). Loss happens in t [rule-based]
+    fallback: AI disabled
+session 20261102T181217Z-9cbf95: completed  (run 20261102T181220Z-fb0f7e)  D:\PROJECT\MultiAgent Copilot\backend\data\team_sessions\20261102T181217Z-9cbf95.json
+
