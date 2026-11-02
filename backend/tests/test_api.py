@@ -252,3 +252,80 @@ def test_serve_with_a_profile_set_fails_before_binding(monkeypatch):
     monkeypatch.setattr("multiagent_copilot.docker_cli.DockerCLI", lambda: FakeDocker(FakeWorld()))
     with pytest.raises(ValueError, match="MCOP_CONFIG_PROFILE"):
         api_mod.serve()
+
+
+# ------------------------------------------------------------------------------------- agent trace (read-only)
+def _team_client(tmp_path, local=(), committed=()):
+    from multiagent_copilot.agent_team.trace import TeamSession
+    from test_team_trace import session
+    dirs = (tmp_path / "local", tmp_path / "committed")
+    for d, ids in zip(dirs, (local, committed)):
+        d.mkdir(parents=True)
+        for sid in ids:
+            (d / f"{sid}.json").write_text(TeamSession.model_validate(session(session_id=sid)).model_dump_json(),
+                                           encoding="utf-8")
+    cfg = make_config(tmp_path)
+    world = FakeWorld()
+    docker = FakeDocker(world)
+    ctl = SafetyController(cfg, CATALOG, docker, observer=FakeObserver(world))
+    app = create_app(cfg, CATALOG, ctl, docker, FakeObserver(world), EvidenceStore(cfg.data_dir), monitor=False,
+                     team_session_dirs=dirs)
+    return TestClient(app)
+
+
+A, B, C = "20261102T150000Z-aaaaaa", "20261102T160000Z-bbbbbb", "20261101T090000Z-cccccc"
+
+
+def test_team_sessions_newest_first_with_summary_shape(tmp_path):
+    with _team_client(tmp_path, local=[A, B]) as c:
+        r = c.get("/api/team/sessions")
+        assert r.status_code == 200
+        d = r.json()
+        assert d["source"] == "local" and [s["session_id"] for s in d["sessions"]] == [B, A]
+        assert set(d["sessions"][0]) == {"session_id", "started_utc", "outcome", "run_id", "experiment_id", "approved_by",
+                                         "steps"}
+        latest = c.get("/api/team/sessions/latest").json()
+        assert latest["source"] == "local" and latest["session"]["session_id"] == B
+        assert latest["session"]["approval"]["approved_by"] == "Anshu"
+
+
+def test_team_sessions_empty_state(tmp_path):
+    with _team_client(tmp_path) as c:
+        assert c.get("/api/team/sessions").json()["sessions"] == []
+        r = c.get("/api/team/sessions/latest")
+        assert r.status_code == 200 and r.json()["session"] is None
+
+
+def test_team_sessions_fall_back_to_committed_evidence(tmp_path):
+    with _team_client(tmp_path, committed=[C]) as c:
+        d = c.get("/api/team/sessions/latest").json()
+        assert d["requested"] == "local" and d["source"] == "committed" and d["session"]["session_id"] == C
+    with _team_client(tmp_path / "x", local=[A], committed=[C]) as c:     # explicit toggle wins over local
+        assert c.get("/api/team/sessions/latest?source=committed").json()["session"]["session_id"] == C
+
+
+@pytest.mark.parametrize("src", ["../../etc", "reports/team-sessions", "LOCAL", ""])
+def test_team_source_is_a_fixed_name_never_a_path(tmp_path, src):
+    with _team_client(tmp_path) as c:
+        assert c.get(f"/api/team/sessions?source={src}").status_code == 422
+        assert c.get(f"/api/team/sessions/latest?source={src}").status_code == 422
+
+
+@pytest.mark.parametrize("method", ["post", "put", "delete", "patch"])
+@pytest.mark.parametrize("path", ["/api/team/sessions", "/api/team/sessions/latest"])
+def test_team_routes_are_read_only(tmp_path, method, path):
+    with _team_client(tmp_path, local=[A]) as c:
+        assert getattr(c, method)(path).status_code == 405
+        assert (tmp_path / "local" / f"{A}.json").is_file()
+
+
+def test_dashboard_has_the_agent_trace_panel(env):
+    html = env["a"].get("/").text
+    assert "Agent trace" in html and "No team sessions yet. Run: mcop team run" in html
+    for row in ("Monitor", "Planner", "Human gate", "Safety Executor", "Analyst"):
+        assert row in html
+
+
+def test_committed_team_session_evidence_is_served(env):
+    d = env["a"].get("/api/team/sessions?source=committed").json()
+    assert d["source"] == "committed" and any(s["outcome"] for s in d["sessions"])

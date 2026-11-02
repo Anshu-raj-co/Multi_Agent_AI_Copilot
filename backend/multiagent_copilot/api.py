@@ -13,6 +13,7 @@ GET /api/insights is read-only (scores, planner proposals, findings from stored 
 from __future__ import annotations
 
 import json
+import re
 import threading
 from collections import deque
 from contextlib import asynccontextmanager
@@ -22,6 +23,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 
+from .agent_team.trace import SESSION_ID_PATTERN, TeamSession
 from .config import REPO_ROOT, ExperimentSpec, SafetyConfig
 from .evidence import EvidenceStore
 from .observation import utcnow
@@ -144,7 +146,8 @@ def _run_summary(rec: dict | None) -> dict | None:
 
 def create_app(cfg: SafetyConfig, catalog: dict[str, ExperimentSpec], ctl: SafetyController, docker, observer,
                store: EvidenceStore, *, monitor: bool = True, dashboard_duration_s: int = DASHBOARD_DURATION_S,
-               insight_sources: dict[str, Path] | None = None, dep_map_path: Path | None = None) -> FastAPI:
+               insight_sources: dict[str, Path] | None = None, dep_map_path: Path | None = None,
+               team_session_dirs: tuple[Path, Path] | None = None) -> FastAPI:
     if cfg.profile != "default":  # GUARDRAIL-DEMO profiles are CLI-only; the dashboard never runs with one
         raise ValueError(f"the dashboard does not run with config profile {cfg.profile!r}; unset MCOP_CONFIG_PROFILE")
     live = LiveState(cfg.stale_threshold_s)
@@ -242,6 +245,45 @@ def create_app(cfg: SafetyConfig, catalog: dict[str, ExperimentSpec], ctl: Safet
         except Exception as exc:  # noqa: BLE001 - display-only; never break the server or the controls
             return JSONResponse({"detail": f"insights unavailable: {type(exc).__name__}: {exc}"}, status_code=500)
         return {"source": source, "sources": sorted(sources), **out}
+
+    # Agent-team sessions (read-only). Fixed source names only; local falls back to committed evidence when empty.
+    local_team, committed_team = team_session_dirs or (store.data_dir / "team_sessions", REPO_ROOT / "reports" / "team-sessions")
+    team_dirs = {"local": local_team, "committed": committed_team}
+
+    def _team_sessions(source: str) -> tuple[str, list[TeamSession]]:
+        def read(d: Path) -> list[TeamSession]:
+            out = []
+            files = sorted((p for p in d.glob("*.json") if re.match(SESSION_ID_PATTERN, p.stem)), reverse=True) if d.is_dir() else []
+            for p in files:
+                try:
+                    out.append(TeamSession.model_validate(json.loads(p.read_text(encoding="utf-8"))))
+                except (OSError, ValueError):  # unreadable or not a valid session: skipped, never shown half-parsed
+                    continue
+            return out
+        found = read(team_dirs[source])
+        if source == "local" and not found:
+            return "committed", read(team_dirs["committed"])
+        return source, found
+
+    def _team_summary(s: TeamSession) -> dict:
+        a = s.approval
+        return {"session_id": s.session_id, "started_utc": s.started_utc, "outcome": s.outcome, "run_id": s.run_id,
+                "experiment_id": a.experiment_id if a else None, "approved_by": a.approved_by if a else None,
+                "steps": [{"agent": x.agent, "status": x.status, "uses_llm": x.uses_llm} for x in s.steps]}
+
+    @app.get("/api/team/sessions")
+    def team_sessions(source: str = "local"):
+        if source not in team_dirs:
+            return JSONResponse({"detail": f"source must be one of {sorted(team_dirs)}"}, status_code=422)
+        used, found = _team_sessions(source)
+        return {"requested": source, "source": used, "sessions": [_team_summary(s) for s in found[:10]]}
+
+    @app.get("/api/team/sessions/latest")
+    def team_latest(source: str = "local"):
+        if source not in team_dirs:
+            return JSONResponse({"detail": f"source must be one of {sorted(team_dirs)}"}, status_code=422)
+        used, found = _team_sessions(source)
+        return {"requested": source, "source": used, "session": found[0].model_dump() if found else None}
 
     def _proposals() -> list[dict]:
         """Rule-based planner ranking over the local evidence store, plus each experiment's predicted symptoms."""
