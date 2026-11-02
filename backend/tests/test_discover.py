@@ -6,7 +6,7 @@ import pytest
 from multiagent_copilot.discover import _host_path, diff_against_map, discover, node_from_inspect, read_text_file, to_json
 from multiagent_copilot.docker_cli import DockerCLI, DockerError
 
-PROJECT = "resiliencepilot-sdv"
+PROJECT = "multiagent-copilot"
 
 
 def _info(name, service=None, env=(), args=(), mounts=(), depends="", aliases=None, dns=None, health=False, ports=None):

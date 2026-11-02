@@ -28,7 +28,7 @@ def test_allowlisted_target_is_in_sandbox_project_and_clean():
     cfg = load_safety_config()
     ctl = SafetyController(cfg, load_experiment_catalog(), DockerCLI())
     st = ctl.verify_target("fms-forwarder")
-    assert st.project == "resiliencepilot-sdv"
+    assert st.project == "multiagent-copilot"
 
 
 def test_non_allowlisted_real_container_is_rejected():

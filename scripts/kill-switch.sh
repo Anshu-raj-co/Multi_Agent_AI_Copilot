@@ -18,7 +18,7 @@ PY
 )
 if [ -z "${PROJECT:-}" ] || [ -z "${TARGETS:-}" ]; then
   echo "could not read config; falling back to defaults" >&2
-  PROJECT="resiliencepilot-sdv"; DATA_DIR="$RP_ROOT/backend/data"; TARGETS="fms-forwarder"
+  PROJECT="multiagent-copilot"; DATA_DIR="$RP_ROOT/backend/data"; TARGETS="fms-forwarder"
 fi
 
 mkdir -p "$DATA_DIR"

@@ -12,7 +12,7 @@ from multiagent_copilot.docker_cli import ContainerState, DockerError, SnapshotE
 from multiagent_copilot.observation import Observation
 
 T0 = datetime(2026, 10, 10, 8, 0, 0, tzinfo=timezone.utc)
-PROJECT = "resiliencepilot-sdv"
+PROJECT = "multiagent-copilot"
 
 
 def obs(t: float, created: float | None, status: int | None = 200, server: float | None = None) -> Observation:

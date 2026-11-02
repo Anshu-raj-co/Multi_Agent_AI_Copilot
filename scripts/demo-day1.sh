@@ -13,7 +13,7 @@ say() { sleep "$PAUSE"; printf '\n\033[1;36m=== %s ===\033[0m\n' "$*"; }
 REF_BASELINE="$RP_ROOT/reports/day1/baseline-20261010T094007Z.json"
 
 say "1/6  The real Eclipse SDV Fleet Management stack, and its verified dependency map"
-docker ps --filter "label=com.docker.compose.project=resiliencepilot-sdv" --format '  {{.Names}}\t{{.Status}}' | sort
+docker ps --filter "label=com.docker.compose.project=multiagent-copilot" --format '  {{.Names}}\t{{.Status}}' | sort
 rp deps
 
 say "2/6  Healthy now: createdDateTime (vehicle) advances; receivedDateTime is just the server's clock"
