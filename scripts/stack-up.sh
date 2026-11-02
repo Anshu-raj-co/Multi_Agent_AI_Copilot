@@ -19,6 +19,6 @@ for f in influxdb/init-scripts/create-fms-token.sh config/zenoh/config-client.js
   fi
 done
 
-rp_compose pull "${RP_SERVICES[@]}"
-rp_compose up --detach --no-build "${RP_SERVICES[@]}"
-rp_compose ps
+mcop_compose pull "${MCOP_SERVICES[@]}"
+mcop_compose up --detach --no-build "${MCOP_SERVICES[@]}"
+mcop_compose ps

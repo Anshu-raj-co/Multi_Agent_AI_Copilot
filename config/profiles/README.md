@@ -1,6 +1,6 @@
 # Config profiles (GUARDRAIL-DEMO only)
 
-Profiles are overlays on `config/safety.json` and `config/experiments.json`, selected with `RP_CONFIG_PROFILE=<name>`.
+Profiles are overlays on `config/safety.json` and `config/experiments.json`, selected with `MCOP_CONFIG_PROFILE=<name>`.
 They exist to show the automatic guardrails stopping a run **live**, using deliberately tight thresholds. They are not
 for normal use. The allowlist is `CONFIG_PROFILES` in `backend/multiagent_copilot/config.py`; any other name is refused.
 
@@ -20,7 +20,7 @@ with an error), so profiles are CLI-only and cannot be selected from the picker.
 
 ```bash
 cd backend
-RP_CONFIG_PROFILE=guardrail-demo-error-rate .venv/bin/rp run --type dependency_failure --target influxDB \
+MCOP_CONFIG_PROFILE=guardrail-demo-error-rate .venv/bin/rp run --type dependency_failure --target influxDB \
   --duration 12 --approved-by "<you>" --hypothesis "GUARDRAIL-DEMO error rate"
 ```
 Evidence: `reports/guardrail-demo/`.

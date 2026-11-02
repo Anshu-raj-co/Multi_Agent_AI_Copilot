@@ -52,7 +52,7 @@ verifies recovery from advancing telemetry — never from HTTP 200 or "container
   wrapper (`backend/resiliencepilot/docker_cli.py`) so it can be faked in tests.
 - Every new behaviour needs a test. Safety-controller changes need negative-path tests.
 - Run tests: `cd backend && .venv/Scripts/python -m pytest -q` (Windows) or `.venv/bin/python -m pytest -q`.
-- Integration tests that need the live stack are marked `@pytest.mark.live` and skipped unless `RP_LIVE=1`.
+- Integration tests that need the live stack are marked `@pytest.mark.live` and skipped unless `MCOP_LIVE=1`.
 
 ## Git workflow
 

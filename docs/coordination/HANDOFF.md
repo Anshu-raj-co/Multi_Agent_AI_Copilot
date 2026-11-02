@@ -60,7 +60,7 @@ approved by the lead) + the final count update. PR #8 still open (older)._
 ## RESUME HERE
 - Status: `docs/coordination/CURRENT_STATUS.md`; requirements: `docs/REQUIREMENTS_TRACE.md` (final); guide:
   `docs/PROJECT_A_TO_Z.md` (refreshed).
-- Tests on `main`: 317 passed, 11 skipped; `RP_LIVE=1`: 320 passed, 8 skipped; `demo-day1.sh` exit 0.
+- Tests on `main`: 317 passed, 11 skipped; `MCOP_LIVE=1`: 320 passed, 8 skipped; `demo-day1.sh` exit 0.
 - Controller READY; local stack running.
 
 ## Earlier (before 2026-10-11 05:00 IST)
@@ -106,13 +106,13 @@ approved by the lead) + the final count update. PR #8 still open (older)._
   telemetry_stall regression x2, blast-radius guard tripped live (Grafana restart), kill switch started a stopped
   target with the backend dead, startup recovery started it without the kill switch.
 - NOT verified live: error-rate and latency guards tripping (no experiment produces errors/latency yet; unit-tested).
-- Tests: 140 unit, 143 with `RP_LIVE=1`. Safety review: no high; M1–M4, L1–L4 fixed (`docs/testing/SAFETY_REVIEW.md`).
+- Tests: 140 unit, 143 with `MCOP_LIVE=1`. Safety review: no high; M1–M4, L1–L4 fixed (`docs/testing/SAFETY_REVIEW.md`).
 - Next: `dependency_failure` (stop influxDB) needs the expected-symptom rule (D-013 caps error tolerance at 0.5;
   an expected HTTP 500 must be modelled separately, not by raising tolerance). Then `sensor_freeze`.
 
 ## Where things are
 - `main` = `843889a`: Day 1 complete, explainer (PR #4) and dashboard (PR #6) merged. Verified 2026-10-10 22:1x:
-  `RP_LIVE=1 pytest` 70 passed; `scripts/demo-day1.sh` exit 0 (46 s).
+  `MCOP_LIVE=1 pytest` 70 passed; `scripts/demo-day1.sh` exit 0 (46 s).
 - **Day 2 step 1 (cleanup): one PR per item, all open and awaiting the lead's merge approval:**
   | PR | Branch | Item |
   |---|---|---|
@@ -152,7 +152,7 @@ approved by the lead) + the final count update. PR #8 still open (older)._
 - Live end-to-end run from the page passed (run `20261010T102525Z-e0bb59`); see the PR description.
 
 ## Day 2 step 1 (cleanup) — in progress
-- PR #6 (dashboard) was already merged (`843889a`). Verified on main: `RP_LIVE=1 pytest` 70 passed; `demo-day1.sh` exit 0, 46 s.
+- PR #6 (dashboard) was already merged (`843889a`). Verified on main: `MCOP_LIVE=1 pytest` 70 passed; `demo-day1.sh` exit 0, 46 s.
 - `fix/safety-file-retry`: bounded retry (5 attempts, 20-50 ms) on PermissionError only, for safety-file replace/read/delete.
   Fails closed as before if retries fail. O_EXCL lock creation and all decisions untouched. Tests:
   `tests/test_safety_file_retry.py`. Stress: API suite 40/40 with a second process making 87,261 `status()` calls.
@@ -176,7 +176,7 @@ git submodule update --init                    # fresh clone only (blueprint pin
 ./scripts/stack-up.sh && ./scripts/stack-status.sh
 cd backend && python -m venv .venv && .venv/Scripts/python -m pip install -e ".[test]"
 .venv/Scripts/python -m pytest -q              # expect 49 passed
-RP_LIVE=1 .venv/Scripts/python -m pytest -q    # expect 52 passed
+MCOP_LIVE=1 .venv/Scripts/python -m pytest -q    # expect 52 passed
 .venv/Scripts/python -m resiliencepilot status # must be READY; if LATCHED_UNSAFE read the reason, check stack, then reset
 ```
 If `docker info` says "Docker Desktop is unable to start": quit Docker Desktop fully and relaunch it.

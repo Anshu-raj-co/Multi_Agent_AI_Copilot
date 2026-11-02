@@ -28,7 +28,7 @@ from multiagent_copilot.scoring import load_runs, score_run, summarise  # noqa: 
 # Pinned from `cd backend && .venv/bin/python -m pytest -q` on feat/data-quality (macOS): update when tests change.
 TESTS_CORE = 317          # existing suite, unchanged
 TESTS_DQ = 79             # backend/tests/test_dq.py
-TESTS_SKIPPED = 11        # live-stack tests, skipped without RP_LIVE=1
+TESTS_SKIPPED = 11        # live-stack tests, skipped without MCOP_LIVE=1
 
 REPO_URL = "https://github.com/Anshu-raj-co/ResiliencePilot"
 

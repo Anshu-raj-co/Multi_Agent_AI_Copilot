@@ -18,7 +18,7 @@ config, contracts, tests. Every finding was checked against the code before it w
 | L4 | Low | Startup recovery skipped the compose-project check. | Startup recovery now checks the project label before it unpauses. | `test_startup_recovery_*` |
 | L5 | Low | The watchdog runs in-process, so a hard kill leaves the fault in place. | Documented as a known limitation (DECISIONS D-011). Mitigated by the external kill switch and startup recovery; the crash test was verified live. | live crash test (`reports/day1/…baf896.json`) |
 
-Result after fixes: `pytest -q` → 49 passed (unit); `RP_LIVE=1` → 52 passed.
+Result after fixes: `pytest -q` → 49 passed (unit); `MCOP_LIVE=1` → 52 passed.
 
 ---
 
@@ -39,7 +39,7 @@ Reviewer: independent read-only subagent, 2026-10-10. Scope: `faults.py`, `guard
 | L4 | Low | Final blast check skipped when the pre-inject snapshot was empty. | Refuse to inject if the baseline is empty or lacks the target. | `test_refuses_to_inject_when_target_missing_from_blast_baseline` |
 | L5 | Low | A `docker stop` the daemon applies after the CLI's 15 s timeout is only caught by the recovery check. | Accepted: that path ends LATCHED_UNSAFE. Documented. | — |
 
-Result after fixes: `pytest -q` → 140 passed; `RP_LIVE=1` → 143 passed; post-fix live runs in `reports/day2/README.md`.
+Result after fixes: `pytest -q` → 140 passed; `MCOP_LIVE=1` → 143 passed; post-fix live runs in `reports/day2/README.md`.
 
 ---
 

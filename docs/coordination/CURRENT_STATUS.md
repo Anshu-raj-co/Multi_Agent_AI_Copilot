@@ -5,7 +5,7 @@
 - **Requirements:** `docs/REQUIREMENTS_TRACE.md`. **Plain-English guide:** `docs/PROJECT_A_TO_Z.md`.
 
 ## Verified (2026-10-11, macOS 27.0.1 Apple Silicon, Docker 29.7.2)
-- `pytest -q`: 317 passed, 11 skipped. `RP_LIVE=1 pytest -q`: 320 passed, 8 skipped (after PR #29 merge).
+- `pytest -q`: 317 passed, 11 skipped. `MCOP_LIVE=1 pytest -q`: 320 passed, 8 skipped (after PR #29 merge).
 - `scripts/demo-day1.sh`: exit 0 (42 s) after the PR #27 merge.
 - Fresh clone with fms-server/fms-consumer images pulled from scratch: all README steps pass (PR #23).
 - Three experiment types live; guardrails live: blast radius (`4aa9f7`), error rate (`77b84c`, then fail-closed

@@ -2,7 +2,7 @@
 
 Verification of each Bosch requirement against evidence in the repository. Final regeneration on 2026-10-11 (code
 frozen). State checked: `main` after PRs #7 and #22–#30 (PR #29 approved and merged by the lead). Host: macOS 27.0.1, Apple Silicon (arm64), Docker 29.7.2, Python 3.13. On `main`: `pytest -q` **317 passed,
-11 skipped**; `RP_LIVE=1` **320 passed, 8 skipped**; `scripts/demo-day1.sh` exit 0 (42 s).
+11 skipped**; `MCOP_LIVE=1` **320 passed, 8 skipped**; `scripts/demo-day1.sh` exit 0 (42 s).
 
 Status meanings:
 - **DONE**: met, and the evidence is in the repo or was reproduced.
@@ -109,7 +109,7 @@ Fresh clone of the PR #23 branch into a new folder on 2026-10-11, after deleting
 | `./scripts/stack-up.sh` | OK, exit 0 in 16 s; both images pulled as linux/amd64 (D-023) |
 | `./scripts/stack-status.sh` | 8/8 running, exit 0; after `stack-down`: exit 1 naming all 8 services |
 | venv + `pip install -e ".[test]"` | OK |
-| `pytest -q` / `RP_LIVE=1 pytest tests/test_live.py` | 270 passed / 3 passed (test count of that branch at the time) |
+| `pytest -q` / `MCOP_LIVE=1 pytest tests/test_live.py` | 270 passed / 3 passed (test count of that branch at the time) |
 | `rp status` | READY |
 | `./scripts/demo-day1.sh` | exit 0 in 42 s: stall COMPLETED (stale at 5.18 s with HTTP 200, recovery 3.51 s); kill-switch run ABORTED with recovery verified; next run refused until reset |
 | `rp serve` | HTTP 200 |

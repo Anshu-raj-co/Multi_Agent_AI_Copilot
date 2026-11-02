@@ -252,7 +252,7 @@ Breaking things on purpose is only acceptable if it is safe. These rules are enf
 | **Emergency stop** | Three ways: dashboard **Kill** button, `rp stop`, and `scripts/kill-switch.sh`, which works **even if our backend has crashed**. |
 | **Rollback always** | On completion, cancel, timeout, lost observation, any error, or a guardrail trip. |
 | **Guardrails** | Abort early on unexpected errors, slowness (latency above 5 times normal), or any change to a container outside the experiment's **blast radius** (the set of things an experiment is allowed to affect). All three guards (error rate, latency, blast radius) have each stopped a live run (§13). |
-| **Demo profiles** | `RP_CONFIG_PROFILE=guardrail-demo-…` loads a labelled overlay with deliberately tight thresholds, used only to show the guardrails firing live. Profiles are **tighten-only** (a value can only get stricter) and **CLI-only** (the dashboard refuses to start with one set). |
+| **Demo profiles** | `MCOP_CONFIG_PROFILE=guardrail-demo-…` loads a labelled overlay with deliberately tight thresholds, used only to show the guardrails firing live. Profiles are **tighten-only** (a value can only get stricter) and **CLI-only** (the dashboard refuses to start with one set). |
 | **Strict recovery** | Rollback confirmed by Docker **and** 3 fresh, advancing vehicle timestamps. HTTP 200 alone never counts. |
 | **Latch** | If rollback or recovery cannot be proven, the tool locks itself (LATCHED_UNSAFE) until a human checks and runs a logged reset. The reset itself requires fresh, advancing data (D-018). |
 | **Crash safety** | If the backend dies mid-fault, the next start-up undoes the fault and latches (D-011). |
@@ -500,7 +500,7 @@ say so.
 - [x] Clean-setup run
 - [x] Each experiment run end to end on the live stack
 - [x] Rollback and recovery verified
-- [x] Unit tests (317) and live tests (320 with `RP_LIVE=1`)
+- [x] Unit tests (317) and live tests (320 with `MCOP_LIVE=1`)
 - [x] Failure paths tested
 - [x] Documentation: installation, architecture, testing, limitations
 - [x] Demo script (`docs/demo/DAY2_DEMO_SCRIPT.md`)
@@ -624,7 +624,7 @@ python3.13 -m venv .venv                               # a private Python enviro
 Stop everything with `./scripts/stack-down.sh`. On Windows use `.venv/Scripts/` instead of `.venv/bin/`.
 
 Tested on Windows 11 (x86-64) and macOS on Apple Silicon. Free local ports needed: 8081, 8086, 3000, 7447 and 55557
-(the databroker; move it with `RP_DATABROKER_HOST_PORT`). On Apple Silicon two images run emulated as linux/amd64.
+(the databroker; move it with `MCOP_DATABROKER_HOST_PORT`). On Apple Silicon two images run emulated as linux/amd64.
 
 ---
 

@@ -3,7 +3,7 @@
 One command runs everything live (≈40 s of machine time; the rest is narration):
 ```bash
 ./scripts/stack-up.sh          # beforehand, once (≈1 min on first pull)
-RP_APPROVER="<presenter name>" ./scripts/demo-day1.sh
+MCOP_APPROVER="<presenter name>" ./scripts/demo-day1.sh
 ```
 A real recorded run is in `day1-demo-run.log`. Nothing in the demo is simulated.
 
@@ -19,7 +19,7 @@ A real recorded run is in `day1-demo-run.log`. Nothing in the demo is simulated.
 
 Optional second screen: Grafana `http://127.0.0.1:3000/d/OwEBnb1Vd/fms-fleet` (sdv/sdv), the blueprint's own dashboard
 (the endpoint was verified reachable; how its panels look during a stall has not been checked yet). Run the demo
-slower with `RP_DEMO_PAUSE=3`.
+slower with `MCOP_DEMO_PAUSE=3`.
 
 ## Talking points if asked
 - **Safety:** allowlist + compose-project label check, strict schema, one run at a time across processes, total fault time ≤ 30 s

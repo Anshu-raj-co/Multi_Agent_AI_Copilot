@@ -101,7 +101,7 @@ planner may only reorder rule-based candidates (exact permutation, else fallback
 finding's runs and pass a deterministic grounding check against the verified facts; failures fall back per item to
 the rule-based knowledge base with the reason and the model's text recorded. Rule-based answers are always available.
 
-**D-021 — Databroker host port moved to 55557 (override: `RP_DATABROKER_HOST_PORT`).** Upstream hardcodes
+**D-021 — Databroker host port moved to 55557 (override: `MCOP_DATABROKER_HOST_PORT`).** Upstream hardcodes
 `127.0.0.1:55555`, which collided with another program on a dev Mac and blocked `databroker`, `csv-provider` and
 `fms-forwarder`. Remapped via `config/compose/resiliencepilot.override.yaml` (`ports: !override`), blueprint untouched.
 No ResiliencePilot code uses the host port; container-to-container traffic is unchanged.

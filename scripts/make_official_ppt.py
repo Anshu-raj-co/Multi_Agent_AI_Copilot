@@ -424,7 +424,7 @@ def slide6(prs):
 
 def slide7(prs):
     s = frame(prs, 7, "Implementation & demonstration", "Live Demonstration, Results & Resilience Score", (
-        "Sources: docs/coordination/CURRENT_STATUS.md (317 passed, 11 skipped; 320 with RP_LIVE=1), HANDOFF.md (37 runs), "
+        "Sources: docs/coordination/CURRENT_STATUS.md (317 passed, 11 skipped; 320 with MCOP_LIVE=1), HANDOFF.md (37 runs), "
         "docs/REQUIREMENTS_TRACE.md and reports/guardrail-demo (guardrails tripped live with deliberately tight demo profiles; "
         "latency guard: 30 ms cap, tripped 1.88 s into the fault), docs/SCORING.md (formula), docs/PROJECT_A_TO_Z.md (medians: "
         "telemetry_stall 62.2 (60.9-63.5, Day 2), service_crash 65.1 (61.9-65.3), dependency_failure 61.6 (57.5-63.2))."))

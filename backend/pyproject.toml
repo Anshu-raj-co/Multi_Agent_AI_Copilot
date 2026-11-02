@@ -25,4 +25,4 @@ slides = ["python-pptx>=1.0,<2"]   # scripts/make_ppt.py
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-markers = ["live: needs the running SDV stack (set RP_LIVE=1)"]
+markers = ["live: needs the running SDV stack (set MCOP_LIVE=1)"]

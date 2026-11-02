@@ -241,14 +241,14 @@ def test_dashboard_refuses_to_run_with_a_config_profile(tmp_path):
     cfg = dataclasses.replace(make_config(tmp_path), profile="guardrail-demo-latency")
     world = FakeWorld()
     docker = FakeDocker(world)
-    with pytest.raises(ValueError, match="RP_CONFIG_PROFILE"):
+    with pytest.raises(ValueError, match="MCOP_CONFIG_PROFILE"):
         create_app(cfg, CATALOG, SafetyController(cfg, CATALOG, docker, observer=FakeObserver(world)), docker,
                    FakeObserver(world), EvidenceStore(cfg.data_dir), monitor=False)
 
 
 def test_serve_with_a_profile_set_fails_before_binding(monkeypatch):
-    monkeypatch.setenv("RP_CONFIG_PROFILE", "guardrail-demo-error-rate")
+    monkeypatch.setenv("MCOP_CONFIG_PROFILE", "guardrail-demo-error-rate")
     monkeypatch.setattr("uvicorn.run", lambda *a, **k: (_ for _ in ()).throw(AssertionError("server started")))
     monkeypatch.setattr("multiagent_copilot.docker_cli.DockerCLI", lambda: FakeDocker(FakeWorld()))
-    with pytest.raises(ValueError, match="RP_CONFIG_PROFILE"):
+    with pytest.raises(ValueError, match="MCOP_CONFIG_PROFILE"):
         api_mod.serve()

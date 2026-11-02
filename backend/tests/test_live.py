@@ -1,4 +1,4 @@
-"""Read-only checks against the running sandbox. Run with RP_LIVE=1 after scripts/stack-up.sh."""
+"""Read-only checks against the running sandbox. Run with MCOP_LIVE=1 after scripts/stack-up.sh."""
 import time
 
 import pytest

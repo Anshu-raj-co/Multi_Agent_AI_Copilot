@@ -36,7 +36,7 @@ Have `reports/day2/findings.md` open in a second tab. Take 1 s pauses between sc
 | Stale flagged ~5 s after injection; recovery verified ~3 s after rollback | `reports/day1/`, `reports/day2/` telemetry_stall runs (4.8–5.3 s; 2.6–3.7 s) |
 | Stale HTTP 200 for over 20 s after the database returned; one run latched | `20261010T192839Z-179795` (~23.5 s, not recovered in 30 s), `20261010T203817Z-01d396` (~21 s) |
 | AI: 6 of 7 answers rejected | `reports/day2/ai_advice_qwen2.5-7b.md`, `docs/AI_LAYER.md` |
-| 317 tests | `pytest -q` on main after PR #29 (320 with `RP_LIVE=1`) |
+| 317 tests | `pytest -q` on main after PR #29 (320 with `MCOP_LIVE=1`) |
 
 The live run's own numbers (detection time, recovery time, score) will differ slightly from these ranges; read them
 from the screen, don't quote the table.

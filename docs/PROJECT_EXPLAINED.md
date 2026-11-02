@@ -259,7 +259,7 @@ All code is in `backend/resiliencepilot/`.
 | **Python 3.13** | It was installed, it supports typing, and it is fast to test (D-007). |
 | **pydantic** | Validates the experiment request strictly (`extra="forbid"`: any unknown field is an error). |
 | **httpx** | Makes the HTTP calls to the rFMS API. |
-| **pytest** | The tests on `main`: 317 unit tests, plus 3 live tests that need the running stack (320 with `RP_LIVE=1`; verified 2026-10-11 on `main` after PR #29). |
+| **pytest** | The tests on `main`: 317 unit tests, plus 3 live tests that need the running stack (320 with `MCOP_LIVE=1`; verified 2026-10-11 on `main` after PR #29). |
 | **`docker` command line via one wrapper** | One small file that tests can fake; no Docker socket is ever handed to any other component. |
 | **FastAPI + uvicorn** | Run the local API and dashboard (`rp serve`), bound to 127.0.0.1 only. |
 | **Frontend** | No framework, npm or build step. The dashboard is one static HTML file (inline CSS/JS) served by the API. The explainer is a generated HTML file that needs no server. |
@@ -462,7 +462,7 @@ run with a precise timestamp: 0.6 s from switch to verified rollback.
 | Python | 3.13.5 | `pyproject.toml` requires ≥ 3.12. `python` must be on PATH (the kill switch uses it). |
 | Memory | Docker VM had 7.68 GiB; the stack used ≈ 221 MiB | No lower limit was tested. |
 | Disk | About 1.2 GB of images | We had ~18 GB free. No lower limit was tested. |
-| Free ports on 127.0.0.1 | 8081 (API), 8086 (InfluxDB), 3000 (Grafana), 55557 (databroker), 7447 (Zenoh) | The databroker host port is 55557, not upstream's 55555 (D-021); change it with `RP_DATABROKER_HOST_PORT`. |
+| Free ports on 127.0.0.1 | 8081 (API), 8086 (InfluxDB), 3000 (Grafana), 55557 (databroker), 7447 (Zenoh) | The databroker host port is 55557, not upstream's 55555 (D-021); change it with `MCOP_DATABROKER_HOST_PORT`. |
 
 ### Steps (run in Git Bash from the repo root)
 
@@ -502,7 +502,7 @@ cd backend
 .venv/Scripts/python -m resiliencepilot status       # "state": "READY"
 .venv/Scripts/python -m resiliencepilot deps         # dependency map with live network checks
 .venv/Scripts/python -m resiliencepilot observe -n 6 # FRESH lines, createdDateTime advancing
-RP_LIVE=1 .venv/Scripts/python -m pytest -q          # 320 passed, 8 skipped
+MCOP_LIVE=1 .venv/Scripts/python -m pytest -q          # 320 passed, 8 skipped
 ```
 
 **6. Baseline**
@@ -514,7 +514,7 @@ Success: 60 samples, all FRESH, HTTP 200 ratio 1.0. Saved under `backend/data/ba
 **7. The full demo (≈ 45 s)**
 ```bash
 cd ..
-RP_APPROVER="<your name>" ./scripts/demo-day1.sh
+MCOP_APPROVER="<your name>" ./scripts/demo-day1.sh
 ```
 Success: a 12 s stall with `<- HTTP 200 but STALE` lines and `Result: COMPLETED`; then a 25 s run stopped by the
 kill switch (`Result: ABORTED stop_reason=emergency_stop`, recovery verified); then a refused run and a reset.
@@ -561,7 +561,7 @@ cd .. && ./scripts/stack-down.sh            # add --volumes to also delete Influ
 | InfluxDB init fails: `run-parts: failed to exec … No such file or directory` | Windows checked the files out with CRLF line endings | Already handled: `stack-up.sh` converts them to LF before starting. *(hit)* |
 | `Blueprint missing. Run: git submodule update --init` / empty blueprint folder | Fresh clone without the submodule | `git submodule update --init`. *(hit; fixed by adding `.gitmodules`, D-006)* |
 | Low disk space | Only ~18 GB free on the Day-1 machine | Use prebuilt images only (`stack-up.sh` never builds). `fleet-analysis-backend` is excluded because it would need a local Java build. *(a constraint we worked around; no failure was hit)* |
-| `port is already allocated` / `address already in use` on 8081/8086/3000/55557/7447 | Another program or an old stack uses the port | Run `./scripts/stack-down.sh`, or stop the other program. For the databroker, pick another port: `RP_DATABROKER_HOST_PORT=55600 ./scripts/stack-up.sh`. *(hit on a Mac with upstream's 55555; fixed by D-021)* |
+| `port is already allocated` / `address already in use` on 8081/8086/3000/55557/7447 | Another program or an old stack uses the port | Run `./scripts/stack-down.sh`, or stop the other program. For the databroker, pick another port: `MCOP_DATABROKER_HOST_PORT=55600 ./scripts/stack-up.sh`. *(hit on a Mac with upstream's 55555; fixed by D-021)* |
 | `no matching manifest for linux/arm64/v8` while pulling `fms-server` / `fms-consumer` | These two images are published for linux/amd64 only | Already handled: the override pins `platform: linux/amd64` for them (D-023); Docker Desktop runs them under emulation. *(hit on Apple Silicon)* |
 | `permission denied` on `./scripts/*.sh` | Scripts were committed without the executable bit | Fixed in git (PR #7). On an old checkout, use `bash scripts/stack-up.sh`. *(hit on macOS)* |
 | `fatal: cannot write keep file … Filename too long` during `git submodule update --init` | Windows' 260-character path limit; the blueprint has deep paths, so a clone inside a long folder path fails | `git -c core.longpaths=true submodule update --init`, or clone into a short path such as `C:\src`. *(hit during the clean-clone test)* |

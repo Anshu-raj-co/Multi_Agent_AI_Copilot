@@ -61,7 +61,7 @@ One-page overview: `docs/ARCHITECTURE_OVERVIEW.md`. Dependency map with source e
 ## Quick start
 
 Prerequisites: Docker Desktop (Compose v2.24+), Python 3.13, git. Free local ports: 8081, 8086, 3000, 7447 and
-55557 (databroker host port; upstream uses 55555, see D-021; change it with `RP_DATABROKER_HOST_PORT`).
+55557 (databroker host port; upstream uses 55555, see D-021; change it with `MCOP_DATABROKER_HOST_PORT`).
 
 Platforms tested: **Windows 11 x86-64** (Git Bash, Docker Desktop on WSL2) and **macOS on Apple Silicon (arm64)**.
 On Apple Silicon, `fms-server` and `fms-consumer` have no arm64 image; the override pins them to `linux/amd64`
@@ -73,12 +73,12 @@ git -c core.longpaths=true submodule update --init   # long-paths flag avoids "F
 ./scripts/stack-up.sh && ./scripts/stack-status.sh    # 8 containers; HTTP 200 with vehicle data; exits 1 if any is down
 cd backend && python3.13 -m venv .venv
 .venv/bin/pip install -e ".[test]"                    # Windows: .venv/Scripts/...
-.venv/bin/python -m pytest -q                         # 317 unit tests (RP_LIVE=1: 320, adds live read-only tests)
+.venv/bin/python -m pytest -q                         # 317 unit tests (MCOP_LIVE=1: 320, adds live read-only tests)
 .venv/bin/rp serve                                    # dashboard at http://127.0.0.1:8765/
 ```
 
 If a port is taken, stop the other program; the databroker port can be moved, e.g.
-`RP_DATABROKER_HOST_PORT=55600 ./scripts/stack-up.sh`. Stop the stack with `./scripts/stack-down.sh`.
+`MCOP_DATABROKER_HOST_PORT=55600 ./scripts/stack-up.sh`. Stop the stack with `./scripts/stack-down.sh`.
 
 ## Commands
 
@@ -93,7 +93,7 @@ If a port is taken, stop the other program; the databroker port can be moved, e.
 | `rp advise [--offline]` | Advisory AI planner + analyst on local Ollama, rule-based fallback | no |
 | `rp serve` | Dashboard + local API on 127.0.0.1:8765 | **yes**: pick one ranked experiment, approve with your typed name |
 
-Demo: `docs/demo/DAY2_DEMO_SCRIPT.md` (3 minutes). Day-1 scripted demo: `RP_APPROVER="<name>" ./scripts/demo-day1.sh`.
+Demo: `docs/demo/DAY2_DEMO_SCRIPT.md` (3 minutes). Day-1 scripted demo: `MCOP_APPROVER="<name>" ./scripts/demo-day1.sh`.
 
 ## Safety model
 

@@ -3,15 +3,15 @@
 ```bash
 cd backend
 .venv/Scripts/python -m pytest -q             # unit tests (no Docker needed)
-RP_LIVE=1 .venv/Scripts/python -m pytest -q   # + read-only checks against the running stack
+MCOP_LIVE=1 .venv/Scripts/python -m pytest -q   # + read-only checks against the running stack
 ```
 Setup: `python -m venv .venv && .venv/Scripts/python -m pip install -e ".[test]"` (Windows paths; use `.venv/bin` elsewhere).
 
 ## Day-1 results (2026-10-10)
-- `pytest -q`: **38 passed**. `RP_LIVE=1 pytest -q`: **41 passed** (≈24 s).
+- `pytest -q`: **38 passed**. `MCOP_LIVE=1 pytest -q`: **41 passed** (≈24 s).
 
 ## Day-2 results (2026-10-10, branch feat/day2-service-crash)
-- `pytest -q`: **140 passed, 3 skipped**. `RP_LIVE=1 pytest -q`: **143 passed**.
+- `pytest -q`: **140 passed, 3 skipped**. `MCOP_LIVE=1 pytest -q`: **143 passed**.
 - New: `test_service_crash.py` (23 collected: stop/start, cap 15 s, start failure latches, no-op stop, replaced
   container never restarted, watchdog starts the container, emergency stop, startup recovery only starts a target
   stopped by our own docker_stop marker for the same container id, injection latency + exit code, and the Day-2
@@ -21,7 +21,7 @@ Setup: `python -m venv .venv && .venv/Scripts/python -m pip install -e ".[test]"
   still latches).
 
 ## Final results (2026-10-11, `main` after PR #29, macOS Apple Silicon)
-- `pytest -q`: **317 passed, 11 skipped**. `RP_LIVE=1 pytest -q`: **320 passed, 8 skipped**.
+- `pytest -q`: **317 passed, 11 skipped**. `MCOP_LIVE=1 pytest -q`: **320 passed, 8 skipped**.
 - New since Day 2: picker/API (`test_api.py`), AI call logging and hypothesis labels (`test_ai.py`), config profiles
   tighten-only and CLI-only (`test_profiles.py`, `test_api.py`), platform and config profile in run records
   (`test_safety.py`). PR #29 added 2 tighten-only tests (implicit defaults).

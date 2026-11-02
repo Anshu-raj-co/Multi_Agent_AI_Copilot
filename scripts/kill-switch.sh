@@ -5,8 +5,8 @@
 # Exit code 0 only if every allowlisted target is verified unpaused afterwards.
 # Afterwards: python -m multiagent_copilot reset --operator NAME --note "..."
 set -uo pipefail   # no -e: one failing docker call must not skip the remaining rollback steps
-RP_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-read -r PROJECT DATA_DIR TARGETS < <(python - "$RP_ROOT" <<'PY'
+MCOP_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+read -r PROJECT DATA_DIR TARGETS < <(python - "$MCOP_ROOT" <<'PY'
 import json, pathlib, sys
 root = pathlib.Path(sys.argv[1])
 cfg = json.loads((root / "config" / "safety.json").read_text())
@@ -18,7 +18,7 @@ PY
 )
 if [ -z "${PROJECT:-}" ] || [ -z "${TARGETS:-}" ]; then
   echo "could not read config; falling back to defaults" >&2
-  PROJECT="multiagent-copilot"; DATA_DIR="$RP_ROOT/backend/data"; TARGETS="fms-forwarder"
+  PROJECT="multiagent-copilot"; DATA_DIR="$MCOP_ROOT/backend/data"; TARGETS="fms-forwarder"
 fi
 
 mkdir -p "$DATA_DIR"

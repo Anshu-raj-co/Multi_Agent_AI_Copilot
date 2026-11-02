@@ -16,7 +16,7 @@ MAX_FAULT_LATENCY_P95_MS = 7500.0       # ceiling for a declared fault-window la
 
 SUPPORTED_MECHANISMS = ("docker_pause", "docker_stop")
 
-# Named config profiles (config/profiles/<name>/), selected with RP_CONFIG_PROFILE. A profile is an overlay on the
+# Named config profiles (config/profiles/<name>/), selected with MCOP_CONFIG_PROFILE. A profile is an overlay on the
 # default config: it may only change guardrail settings and a few per-experiment response limits, never targets,
 # mechanisms, durations, the compose project or the data dir (so the one-run lock stays shared). Every value still
 # passes the same bounds checks. Used to demonstrate guards live with deliberately tight thresholds.
@@ -34,11 +34,11 @@ def _check_tightens(profile: str, what: str, key: str, base, new) -> None:
 
 
 def active_profile() -> str | None:
-    name = os.environ.get("RP_CONFIG_PROFILE", "").strip()
+    name = os.environ.get("MCOP_CONFIG_PROFILE", "").strip()
     if not name or name == "default":
         return None
     if name not in CONFIG_PROFILES:
-        raise ValueError(f"RP_CONFIG_PROFILE must be one of {CONFIG_PROFILES} (or unset), got {name!r}")
+        raise ValueError(f"MCOP_CONFIG_PROFILE must be one of {CONFIG_PROFILES} (or unset), got {name!r}")
     return name
 
 
