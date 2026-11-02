@@ -1,0 +1,24 @@
+Team session 20261102T151952Z-8b5eaa  outcome=completed  run_id=20261102T151955Z-56a912  started 2026-11-02T15:19:52.585+00:00
+[Monitor] OK (deterministic, 2.7 s)  observe: rFMS freshness via the telemetry verifier + stored baseline (deterministic)
+    in:       6 polls every 0.5 s, stale threshold 5.0 s
+    out:      6/6 FRESH, HTTP 200 6/6, createdDateTime advanced: True, max data age 0.784913 s; baseline: baseline-20261102T150125Z
+    decision: healthy: hand over to the Planner
+    evidence: baseline-20261102T150125Z
+[Planner] FALLBACK (deterministic, 0.0 s)  propose: rank allowlisted experiments (rule-based; optional advisory LLM reorder)
+    in:       3 allowlisted experiment types, 45 stored run records, AI off
+    out:      ranking: 1. dependency_failure@influxDB, 2. service_crash@fms-forwarder, 3. telemetry_stall@fms-forwarder
+    decision: proposals ready for the human gate (requested: telemetry_stall)
+    fallback: AI disabled
+    evidence: config/experiments.json, config/dependency_map.json
+[HUMAN] approved by Anshu at 2026-11-02T15:19:55.252+00:00: telemetry_stall (planner rank 3)
+[Executor] OK (deterministic, 30.1 s)  execute: one approved, allowlisted experiment through the safety controller (deterministic, never an LLM)
+    in:       approved by Anshu: telemetry_stall on fms-forwarder for 25 s
+    out:      run 20261102T151955Z-56a912 COMPLETED (stop_reason=duration_elapsed); fault verified True, stale detected True (ttd 5.332 s), HTTP-200 ratio during fault 1.0; rollback verified True by orchestrator; recovery verified True after 2.67 s
+    decision: run completed; hand over to the Analyst
+    evidence: 20261102T151955Z-56a912, runs/20261102T151955Z-56a912.json (evidence store)
+[Analyst] FALLBACK (deterministic, 0.0 s)  explain: score + findings for the run (rule-based; optional advisory LLM with grounding check)
+    in:       run record 20261102T151955Z-56a912, 46 run records, AI off
+    out:      run 20261102T151955Z-56a912 COMPLETED (duration_elapsed); score 46.1; 8 finding(s) over 46 run(s), 2 cite this run
+    decision: F4 silent_during_fault: fms-server serves the last stored status with receivedDateTime = request time and no staleness signal, so the API stays HTTP 200 while vehic [rule-based]; F7 data_loss: fms-consumer drops statuses it cannot write ('failed to write data to influx'); there is no buffer or backfill (verified). Loss happens in t [rule-based]
+    fallback: AI disabled
+    evidence: 20261102T151955Z-56a912, F4, F7

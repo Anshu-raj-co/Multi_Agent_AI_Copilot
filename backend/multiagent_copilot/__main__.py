@@ -87,6 +87,117 @@ def build(on_event=None):
     return cfg, catalog, docker, ctl, observer, store, ExperimentRunner(cfg, catalog, ctl, docker, observer, store, on_event)
 
 
+def _team_dirs():
+    return load_safety_config().data_dir / "team_sessions", REPO_ROOT / "reports" / "team-sessions"
+
+
+def _team_read(args) -> int:
+    from .agent_team.pipeline import find_session, load_session, render_session, session_files
+    local, committed = _team_dirs()
+    if args.team_cmd == "sessions":
+        files = session_files(local, committed)
+        if not files:
+            print("No team sessions yet. Run: mcop team run")
+        for f in files:
+            s = load_session(f)
+            a = s.approval
+            print(f"{s.session_id}  {s.outcome:<9}  {a.experiment_id if a else '-':<18}  run={s.run_id or '-':<24}  "
+                  f"approved_by={a.approved_by if a else '-'}  ({'local' if f.parent == local else 'committed'})")
+        return 0
+    try:
+        path = find_session(args.session_id, local, committed)
+    except ValueError as exc:
+        print(exc)
+        return 2
+    if path is None:
+        print("not found")
+        return 1
+    print(render_session(load_session(path)))
+    return 0
+
+
+def _team_run(args, cfg, ctl, observer, store, runner, catalog) -> int:
+    """Monitor -> Planner -> HUMAN GATE -> Safety Executor -> Analyst. Non-interactive only when both --experiment and
+    --approved-by are given; otherwise the operator picks a proposal, types a name and types APPROVE."""
+    from .agent_team.agents import AnalystAgent, MonitorAgent, PlannerAgent
+    from .agent_team.executor_agent import SafetyExecutorAgent
+    from .agent_team.pipeline import LABEL, make_approval, run_session
+    from .scoring import load_runs
+    raw = json.loads((REPO_ROOT / "config" / "experiments.json").read_text(encoding="utf-8"))
+    dep_map = json.loads((REPO_ROOT / "config" / "dependency_map.json").read_text(encoding="utf-8"))
+    runs_dir = store.data_dir / "runs"
+
+    def runs_loader():
+        return load_runs(runs_dir) if runs_dir.is_dir() else []
+
+    provider = None
+    if args.ai:
+        from .ai import OllamaProvider, load_ai_config
+        provider = OllamaProvider(load_ai_config(REPO_ROOT))
+    interactive = not (args.experiment and args.approved_by)
+
+    def ask(prompt: str) -> str | None:
+        try:
+            return input(prompt).strip()
+        except EOFError:
+            return None
+
+    def gate(proposals):
+        print(f"{C['b']}Proposals (ranked){C['x']}")
+        for p in proposals:
+            print(f"  {p['rank']}. {p['experiment_id']} on {p['target']} ({p['mechanism']}, {p['suggested_duration_s']} s)")
+            for r in p["reasons"]:
+                print(f"       why:      {r}")
+            print(f"       predicts: {'; '.join(p['predicted_symptoms'])}")
+            print(f"       risks:    {'; '.join(p['risks'])}")
+        chosen, name = args.experiment, args.approved_by
+        if interactive:
+            if chosen is None:
+                pick = ask("Choose an experiment (number or id): ")
+                hit = [p for p in proposals if pick and pick in (str(p["rank"]), p["experiment_id"])]
+                if not hit:
+                    print("no valid choice; nothing executed")
+                    return None
+                chosen = hit[0]["experiment_id"]
+            name = name or ask("Your name: ")
+            if ask(f"Type APPROVE to run {chosen} as {name}: ") != "APPROVE":
+                print("not approved; nothing executed")
+                return None
+        try:
+            approval = make_approval(proposals, chosen, name or "")
+        except ValueError as exc:
+            print(f"{C['r']}not approved: {exc}{C['x']}")
+            return None
+        signal.signal(signal.SIGINT, lambda *_: ctl.signal_stop())  # Ctrl+C now stops the run (lock-free, I/O-free)
+        return approval
+
+    def on_step(kind, payload):
+        if kind == "gate":
+            print(f"{C['b']}[HUMAN]{C['x']} " + (f"approved by {payload.approved_by} at {payload.approved_at_utc}: "
+                                                 f"{payload.experiment_id}" if payload else "not approved: nothing executed"),
+                  flush=True)
+            return
+        badge = "LLM" if payload.uses_llm else "deterministic"
+        print(f"{C['b']}[{LABEL[kind]}]{C['x']} {payload.status.upper()} ({badge}) {payload.output_summary}", flush=True)
+        print(f"    decision: {payload.decision}" + (f"\n    fallback: {payload.fallback_reason}"
+                                                    if payload.fallback_reason else ""), flush=True)
+
+    session = run_session(
+        MonitorAgent(observer, cfg.stale_threshold_s, store.latest_baseline),
+        PlannerAgent(raw, dep_map, runs_loader, cfg.max_duration_s, provider=provider), gate,
+        SafetyExecutorAgent(catalog, ctl, runner), AnalystAgent(runs_loader, provider=provider),
+        sessions_dir=store.data_dir / "team_sessions", experiment_id=args.experiment, on_step=on_step)
+    if provider is not None:  # every prompt, raw response and validation result, like `mcop advise`
+        from datetime import datetime, timezone
+        log = store.save_ai_calls(session.session_id, {
+            "logged_at": datetime.now(timezone.utc).isoformat(), "command": "mcop team run",
+            "session_id": session.session_id, "calls": provider.calls})
+        print(f"model calls: {log}")
+    print(f"session {session.session_id}: {session.outcome}  (run {session.run_id or 'none'})  "
+          f"{store.data_dir / 'team_sessions' / (session.session_id + '.json')}")
+    return {"completed": 0, "aborted": 3, "refused": 2, "error": 1}[session.outcome]
+
+
 def _utf8_stdio() -> None:
     """Windows pipes default to the ANSI codepage (cp1252), which cannot encode the bars/arrows we print."""
     for stream in (sys.stdout, sys.stderr):
@@ -132,6 +243,17 @@ def main(argv: list[str] | None = None) -> int:
     sbs = sub.add_parser("show-baseline"); sbs.add_argument("file", nargs="?")
     sv = sub.add_parser("serve"); sv.add_argument("--port", type=int, default=8765)
     rp_ = sub.add_parser("report"); rp_.add_argument("--run"); rp_.add_argument("--out", default="reports/day1/explainer.html")
+    stm = sub.add_parser("team", help="agent team: Monitor -> Planner -> human gate -> Safety Executor -> Analyst")
+    tsub = stm.add_subparsers(dest="team_cmd", required=True)
+    tr = tsub.add_parser("run", help="one session; a named human approves at the gate (no flag skips it)")
+    tr.add_argument("--experiment", help="catalogue id; with --approved-by the run is non-interactive")
+    tr.add_argument("--approved-by", help="your name; with --experiment the run is non-interactive")
+    tai = tr.add_mutually_exclusive_group()
+    tai.add_argument("--ai", dest="ai", action="store_true", help="Planner/Analyst may consult local Ollama")
+    tai.add_argument("--no-ai", dest="ai", action="store_false", help="rule-based Planner/Analyst only (default)")
+    tr.set_defaults(ai=False)
+    tsub.add_parser("sessions", help="read-only: list team sessions, newest first")
+    tsh = tsub.add_parser("show", help="read-only: print one team session"); tsh.add_argument("session_id")
     args = p.parse_args(argv)
 
     if args.cmd == "serve":  # the app performs startup recovery itself, exactly like other commands
@@ -226,6 +348,9 @@ def main(argv: list[str] | None = None) -> int:
             print(f"wrote {out}")
         return 0
 
+    if args.cmd == "team" and args.team_cmd in ("sessions", "show"):  # read-only: session files only
+        return _team_read(args)
+
     if args.cmd == "discover":  # read-only (docker ps/inspect + bind-mounted config files); no safety objects needed
         from pathlib import Path
         from .discover import load_map, render_text, run_discovery
@@ -255,6 +380,9 @@ def main(argv: list[str] | None = None) -> int:
             rec["rollback"].update(attempted=True, by="startup_recovery", detail=recovered["outcome"])
             store.save_run(rec)
         print(f"{C['r']}{C['b']}Interrupted run found and cleaned up: {recovered}. Controller latched; review then `reset`.{C['x']}")
+
+    if args.cmd == "team":  # run: after startup recovery, like `run`
+        return _team_run(args, cfg, ctl, observer, store, runner, catalog)
 
     if args.cmd == "status":
         print(json.dumps(ctl.status(), indent=2))

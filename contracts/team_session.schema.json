@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "multiagent-copilot/team_session.schema.json",
+  "title": "TeamSession",
+  "description": "One agent-team session (Monitor -> Planner -> human gate -> Safety Executor -> Analyst), written by backend/multiagent_copilot/agent_team/pipeline.py to backend/data/team_sessions/<session_id>.json. Unknown fields are rejected.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["session_id", "started_utc", "steps", "approval", "run_id", "outcome"],
+  "properties": {
+    "session_id": {"type": "string", "pattern": "^\\d{8}T\\d{6}Z-[0-9a-f]{6}$", "description": "UTC timestamp + 6 hex, same style as run ids"},
+    "started_utc": {"$ref": "#/$defs/utc"},
+    "steps": {"type": "array", "items": {"$ref": "#/$defs/AgentStep"}, "description": "One entry per agent hand-off, in order"},
+    "approval": {"anyOf": [{"$ref": "#/$defs/ApprovalRecord"}, {"type": "null"}],
+                 "description": "The named human approval; null when the session ended before or at the gate"},
+    "run_id": {"type": ["string", "null"], "description": "Run record id (backend/data/runs/<run_id>.json) when the executor started a run"},
+    "outcome": {"type": "string", "enum": ["completed", "aborted", "refused", "error"]}
+  },
+  "$defs": {
+    "utc": {"type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}\\+00:00$"},
+    "AgentStep": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["agent", "role", "uses_llm", "started_utc", "ended_utc", "inputs_summary", "output_summary", "decision",
+                   "evidence_refs", "status", "fallback_reason"],
+      "properties": {
+        "agent": {"type": "string", "enum": ["monitor", "planner", "executor", "analyst"]},
+        "role": {"type": "string"},
+        "uses_llm": {"type": "boolean", "description": "True only when the local LLM was consulted (Planner/Analyst with --ai); Monitor and Safety Executor are always false"},
+        "started_utc": {"$ref": "#/$defs/utc"},
+        "ended_utc": {"$ref": "#/$defs/utc"},
+        "inputs_summary": {"type": "string"},
+        "output_summary": {"type": "string"},
+        "decision": {"type": "string"},
+        "evidence_refs": {"type": "array", "items": {"type": "string"}},
+        "status": {"type": "string", "enum": ["ok", "fallback", "refused", "error"]},
+        "fallback_reason": {"type": ["string", "null"]}
+      }
+    },
+    "ApprovalRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["approved_by", "approved_at_utc", "experiment_id", "shown"],
+      "properties": {
+        "approved_by": {"type": "string", "minLength": 1, "pattern": "\\S"},
+        "approved_at_utc": {"$ref": "#/$defs/utc"},
+        "experiment_id": {"type": "string"},
+        "shown": {"$ref": "#/$defs/Shown"}
+      }
+    },
+    "Shown": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rank", "reasons", "predicted_symptoms", "risks"],
+      "properties": {
+        "rank": {"type": "integer"},
+        "reasons": {"type": "array", "items": {"type": "string"}},
+        "predicted_symptoms": {"type": "array", "items": {"type": "string"}},
+        "risks": {"type": "array", "items": {"type": "string"}}
+      }
+    }
+  }
+}

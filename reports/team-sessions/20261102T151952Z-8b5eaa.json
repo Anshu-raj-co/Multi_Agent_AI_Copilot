@@ -1,0 +1,98 @@
+{
+  "session_id": "20261102T151952Z-8b5eaa",
+  "started_utc": "2026-11-02T15:19:52.585+00:00",
+  "steps": [
+    {
+      "agent": "monitor",
+      "role": "observe: rFMS freshness via the telemetry verifier + stored baseline (deterministic)",
+      "uses_llm": false,
+      "started_utc": "2026-11-02T15:19:52.585+00:00",
+      "ended_utc": "2026-11-02T15:19:55.237+00:00",
+      "inputs_summary": "6 polls every 0.5 s, stale threshold 5.0 s",
+      "output_summary": "6/6 FRESH, HTTP 200 6/6, createdDateTime advanced: True, max data age 0.784913 s; baseline: baseline-20261102T150125Z",
+      "decision": "healthy: hand over to the Planner",
+      "evidence_refs": [
+        "baseline-20261102T150125Z"
+      ],
+      "status": "ok",
+      "fallback_reason": null
+    },
+    {
+      "agent": "planner",
+      "role": "propose: rank allowlisted experiments (rule-based; optional advisory LLM reorder)",
+      "uses_llm": false,
+      "started_utc": "2026-11-02T15:19:55.237+00:00",
+      "ended_utc": "2026-11-02T15:19:55.252+00:00",
+      "inputs_summary": "3 allowlisted experiment types, 45 stored run records, AI off",
+      "output_summary": "ranking: 1. dependency_failure@influxDB, 2. service_crash@fms-forwarder, 3. telemetry_stall@fms-forwarder",
+      "decision": "proposals ready for the human gate (requested: telemetry_stall)",
+      "evidence_refs": [
+        "config/experiments.json",
+        "config/dependency_map.json"
+      ],
+      "status": "fallback",
+      "fallback_reason": "AI disabled"
+    },
+    {
+      "agent": "executor",
+      "role": "execute: one approved, allowlisted experiment through the safety controller (deterministic, never an LLM)",
+      "uses_llm": false,
+      "started_utc": "2026-11-02T15:19:55.252+00:00",
+      "ended_utc": "2026-11-02T15:20:25.361+00:00",
+      "inputs_summary": "approved by Anshu: telemetry_stall on fms-forwarder for 25 s",
+      "output_summary": "run 20261102T151955Z-56a912 COMPLETED (stop_reason=duration_elapsed); fault verified True, stale detected True (ttd 5.332 s), HTTP-200 ratio during fault 1.0; rollback verified True by orchestrator; recovery verified True after 2.67 s",
+      "decision": "run completed; hand over to the Analyst",
+      "evidence_refs": [
+        "20261102T151955Z-56a912",
+        "runs/20261102T151955Z-56a912.json (evidence store)"
+      ],
+      "status": "ok",
+      "fallback_reason": null
+    },
+    {
+      "agent": "analyst",
+      "role": "explain: score + findings for the run (rule-based; optional advisory LLM with grounding check)",
+      "uses_llm": false,
+      "started_utc": "2026-11-02T15:20:25.361+00:00",
+      "ended_utc": "2026-11-02T15:20:25.390+00:00",
+      "inputs_summary": "run record 20261102T151955Z-56a912, 46 run records, AI off",
+      "output_summary": "run 20261102T151955Z-56a912 COMPLETED (duration_elapsed); score 46.1; 8 finding(s) over 46 run(s), 2 cite this run",
+      "decision": "F4 silent_during_fault: fms-server serves the last stored status with receivedDateTime = request time and no staleness signal, so the API stays HTTP 200 while vehic [rule-based]; F7 data_loss: fms-consumer drops statuses it cannot write ('failed to write data to influx'); there is no buffer or backfill (verified). Loss happens in t [rule-based]",
+      "evidence_refs": [
+        "20261102T151955Z-56a912",
+        "F4",
+        "F7"
+      ],
+      "status": "fallback",
+      "fallback_reason": "AI disabled"
+    }
+  ],
+  "approval": {
+    "approved_by": "Anshu",
+    "approved_at_utc": "2026-11-02T15:19:55.252+00:00",
+    "experiment_id": "telemetry_stall",
+    "shown": {
+      "rank": 3,
+      "reasons": [
+        "15 full-window run(s) so far (information 0.06)",
+        "0/3 expected symptoms still labelled HYPOTHESIS in config/experiments.json",
+        "2/30 past runs unresolved (latched or cut short)",
+        "2 neighbouring container(s) in the dependency map: databroker, fms-zenoh-router",
+        "latch rate 2/30",
+        "mechanism docker_pause (severity 0.3)",
+        "score so far: median 55.5 (range 49.6-63.5)"
+      ],
+      "predicted_symptoms": [
+        "fms-server keeps returning HTTP 200",
+        "receivedDateTime keeps tracking request time",
+        "createdDateTime stops advancing; data age grows past stale_threshold_s"
+      ],
+      "risks": [
+        "Zenoh session lease may expire during a long pause and require reconnect on unpause",
+        "Telemetry for the paused window is not produced (no backfill)"
+      ]
+    }
+  },
+  "run_id": "20261102T151955Z-56a912",
+  "outcome": "completed"
+}
