@@ -20,7 +20,7 @@ Not production software and not safety-certified. Faults only ever target the lo
 ![Live dashboard: Resilience Score, planner proposals and findings from recorded runs](docs/demo/dashboard-day2.png)
 
 **Contents:** [Results](#results) · [How it works](#how-it-works) · [Quick start](#quick-start) ·
-[Commands](#commands) · [Multi-agent copilot](#multi-agent-copilot) · [Safety model](#safety-model) · [What the AI does](#what-the-ai-does-and-does-not-do) · [Limitations](#limitations) · [Documents](#documents)
+[Commands](#commands) · [Multi-agent copilot](#multi-agent-copilot) · [Safety model](#safety-model) · [What the AI does](#what-the-ai-does-and-does-not-do) · [Limitations](#limitations) · [Documentation](#documentation)
 
 ## Results
 
@@ -73,12 +73,12 @@ On Apple Silicon, `fms-server` and `fms-consumer` have no arm64 image; the overr
 and Docker Desktop runs them under emulation (D-023). Linux was not tested.
 
 ```bash
-git clone https://github.com/Anshu-raj-co/Multi_Agent_AI_Copilot.git && cd Multi_Agent_AI_Copilot
-git -c core.longpaths=true submodule update --init   # long-paths flag avoids "Filename too long" on Windows
+git -c core.longpaths=true clone --recurse-submodules https://github.com/Anshu-raj-co/Multi_Agent_AI_Copilot.git
+cd Multi_Agent_AI_Copilot                            # long-paths flag avoids "Filename too long" on Windows
 ./scripts/stack-up.sh && ./scripts/stack-status.sh    # 8 containers; HTTP 200 with vehicle data; exits 1 if any is down
 cd backend && python3.13 -m venv .venv
 .venv/bin/pip install -e ".[test]"                    # Windows: .venv/Scripts/...
-.venv/bin/python -m pytest -q                         # 317 unit tests (MCOP_LIVE=1: 320, adds live read-only tests)
+.venv/bin/python -m pytest -q                         # Windows 2026-11-02: 518 passed, 3 skipped (MCOP_LIVE=1: 521 passed)
 .venv/bin/mcop serve                                  # dashboard at http://127.0.0.1:8765/
 ```
 
@@ -164,8 +164,9 @@ The AI is advisory only. Detection, severity ranking, the score and every safety
 | Run locally (Ollama `qwen2.5:7b`, loopback only); its text is labelled `ollama:<model>` | Compute or change the Resilience Score: `scoring.py` does that deterministically (`docs/SCORING.md`) |
 | Get every answer checked: wrong order or ungrounded root cause → replaced by the rule-based answer | Touch the shell, Docker, credentials, the safety controller, rollback or recovery decisions |
 
-In the one recorded real model call (`reports/day2/ai_advice_qwen2.5-7b.md`), the planner returned the same order as
-the rules, and **1 of 7** analyst explanations passed validation; the other 6 were replaced by rule-based text.
+In the two recorded real model calls (`reports/day2/ai_advice_qwen2.5-7b.md`, `reports/day2/ai_advice_qwen2.5-7b-20261010T233726Z.md`;
+the full prompt/response log of the second is in `reports/day2/ai_calls/`), the planner returned the same order as
+the rules, and **1 of 7** analyst explanations passed validation each time; the other 6 were replaced by rule-based text.
 
 ## Limitations
 
@@ -179,9 +180,17 @@ the rules, and **1 of 7** analyst explanations passed validation; the other 6 we
 - One vehicle, one host. Small samples (n = 2–8 per experiment).
 - Agents are coordinated by our own pipeline, not an agent framework; the AI adds little beyond the deterministic layer.
 
-## Documents
+## Documentation
 
-| Document | |
+Start here:
+
+- [docs/PROJECT_A_TO_Z.md](docs/PROJECT_A_TO_Z.md): the A-to-Z guide (whole project, plain language)
+- [docs/MULTI_AGENT_DESIGN.md](docs/MULTI_AGENT_DESIGN.md): the agent team, trace and import guards
+- [docs/ARCHITECTURE_OVERVIEW.md](docs/ARCHITECTURE_OVERVIEW.md): one-page architecture
+- [docs/DECISIONS.md](docs/DECISIONS.md): decision log (D-001 to D-025)
+- [docs/demo/MULTI_AGENT_DEMO_SCRIPT.md](docs/demo/MULTI_AGENT_DEMO_SCRIPT.md): 3-minute multi-agent demo
+
+| More | |
 |---|---|
 | `docs/ARCHITECTURE_OVERVIEW.md` | One-page architecture |
 | `docs/demo/DAY2_DEMO_SCRIPT.md` | 3-minute demo video script |

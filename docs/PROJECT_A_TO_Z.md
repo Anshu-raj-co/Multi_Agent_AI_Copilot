@@ -1,705 +1,370 @@
 # Multi-Agent Copilot: the A-to-Z guide
 
-A complete, beginner-friendly guide to the project. Every technical word is explained in brackets the first time it
-appears, and there is a glossary at the end. Every number in this guide comes from a real run recorded in `reports/`;
-nothing is invented.
+This guide explains the whole project to someone who has never seen it. It uses plain language, and every technical
+term is defined the first time it appears (the glossary in section 14 repeats them). Every number comes from a run
+record, a log or a test run in this repository, with its source named. Anything not verified is marked **UNVERIFIED**.
 
 **Contents**
-1. [The project in 60 seconds](#1-the-project-in-60-seconds)
-2. [The problem we found](#2-the-problem-we-found)
-3. [The system we test (the Eclipse SDV blueprint)](#3-the-system-we-test-the-eclipse-sdv-blueprint)
-4. [How Multi-Agent Copilot works: all the parts](#4-how-multi-agent-copilot-works-all-the-parts)
-5. [The pipelines (how data and actions flow)](#5-the-pipelines-how-data-and-actions-flow)
-6. [The three experiments](#6-the-three-experiments)
-7. [The safety model](#7-the-safety-model)
-8. [The Resilience Score](#8-the-resilience-score)
-9. [The frontend (the live dashboard)](#9-the-frontend-the-live-dashboard)
-10. [The AI agent: what it is and how it helps](#10-the-ai-agent-what-it-is-and-how-it-helps)
-11. [Tech stack: what we used and why we chose it over alternatives](#11-tech-stack-what-we-used-and-why-we-chose-it-over-alternatives)
-12. [Hackathon guidelines checklist](#12-hackathon-guidelines-checklist)
-13. [Results](#13-results)
-14. [Roadmap: what was built when, and what comes next](#14-roadmap-what-was-built-when-and-what-comes-next)
-15. [How to run it](#15-how-to-run-it)
-16. [Commands reference](#16-commands-reference)
-17. [Limitations (honest caveats)](#17-limitations-honest-caveats)
-18. [Glossary](#18-glossary)
+1. [What this project is](#1-what-this-project-is)
+2. [Origin and lineage](#2-origin-and-lineage)
+3. [The core idea: HTTP 200 is not recovery](#3-the-core-idea-http-200-is-not-recovery)
+4. [The system under test](#4-the-system-under-test)
+5. [Repository map](#5-repository-map)
+6. [The safety model](#6-the-safety-model)
+7. [The experiments](#7-the-experiments)
+8. [The agent team](#8-the-agent-team)
+9. [One session, step by step](#9-one-session-step-by-step)
+10. [Naming map (old to new)](#10-naming-map-old-to-new)
+11. [How to run it](#11-how-to-run-it)
+12. [Evidence and numbers](#12-evidence-and-numbers)
+13. [Honest limits and what we must not claim](#13-honest-limits-and-what-we-must-not-claim)
+14. [Glossary (A to Z)](#14-glossary-a-to-z)
+15. [Likely faculty questions](#15-likely-faculty-questions)
+16. [Where to read next](#16-where-to-read-next)
 
 ---
 
-## 1. The project in 60 seconds
+## 1. What this project is
 
-Modern trucks and cars send a constant stream of data (**telemetry**: automatic measurements such as speed, position
-and fuel level, sent from the vehicle) to a server in the cloud. Fleet operators read that data through an **API**
-(Application Programming Interface: a fixed way for one program to ask another program for data).
+**Multi-Agent Copilot is a human-supervised multi-agent copilot for safe chaos engineering on the Eclipse SDV Fleet
+Management Blueprint.**
 
-The usual way to check that such a server is "healthy" is to ask it something and see whether it answers with
-**HTTP 200** (the standard web code meaning "OK, here is your answer").
+In plain words: it is a tool that runs on one laptop next to a real, open-source fleet-management system for trucks.
+It checks whether the vehicle data is really fresh, proposes a small controlled failure to test the system, waits for a
+named person to approve it, causes that failure for a few seconds, undoes it, proves the system recovered, and writes a
+report. **Chaos engineering** means testing a system by causing failures on purpose, in a controlled way, to find weak
+spots before real outages do. The tool fixes nothing in the system it tests; it injects bounded faults, rolls them back
+and reports.
 
-**Our discovery:** in the official Eclipse fleet-management demo system, the API keeps answering "200 OK" even when
-the vehicle data has stopped updating. The answer looks healthy, but the data is **stale** (old, no longer being
-refreshed). A normal health check would say everything is fine.
+The work is split between four software **agents** (separate components, each with one job) and one human:
+a Monitor, a Planner, a human approval gate, a Safety Executor and an Analyst (section 8).
 
-**Multi-Agent Copilot** is a tool that:
-1. Watches the API like a real client and judges health by **how old the vehicle data is**, not by the HTTP code.
-2. Breaks things on purpose, in a safe and controlled way (**fault injection**: deliberately causing a failure to
-   see how the system reacts), for at most 30 seconds.
-3. Undoes the fault (**rollback**) and only says "recovered" when fresh vehicle data is flowing again.
-4. Records everything as evidence, scores how resilient the system was, and suggests what to test next.
+## 2. Origin and lineage
 
-**Tagline:** *HTTP 200 is not recovery. Fresh data is.*
+Multi-Agent Copilot began as the **ResiliencePilot SDV** entry for the **Bosch Hackathon 2026** (original repository:
+https://github.com/Anshu-raj-co/ResiliencePilot). For the university project review we had little time, so instead of
+starting from scratch we reused that tested project and extended it.
 
-This practice is called **chaos engineering** (testing a system by deliberately injecting failures to find weak spots
-before real outages find them), and the quality we measure is **resilience** (how well a system keeps working and
-recovers when parts of it fail).
+**What stayed the same:** the system under test, every safety rule, the three experiments, the evidence files under
+`reports/day1/`, `reports/day2/` and `reports/guardrail-demo/` (recorded runs, never edited), the scoring, the
+dashboard's existing panels, all ports and all container names, and the tagline.
 
----
+**What changed:**
+- **Names** (section 10): package, command-line tool, Compose project label and environment-variable prefix.
+- **A new agent-team layer** (`backend/multiagent_copilot/agent_team/`) that wraps the existing code into five stages
+  with a recorded trace (a log of every hand-off), plus `mcop team` commands, two read-only API routes and an
+  "Agent trace" panel on the dashboard.
+- **Two bug fixes found during the move to Windows:** a path check in dependency discovery, and the kill switch writing
+  its stop file outside the repository when the folder name contains a space (`docs/rename-recon.md`, git log).
 
-## 2. The problem we found
+The hackathon submission record keeps the original name: `docs/TEAM_FORM_INFO.md`. Decision D-024 in
+`docs/DECISIONS.md` records the rename.
 
-Each answer from the fleet API carries two timestamps:
+## 3. The core idea: HTTP 200 is not recovery
 
-| Field | Who sets it | What it really means |
+*HTTP 200 is not recovery. Fresh data is.*
+
+Trucks send **telemetry** (automatic measurements such as speed, fuel level and position) to a server. Fleet operators
+read it through an **API** (Application Programming Interface: a fixed way for one program to ask another for data).
+The usual health check asks the API something and looks for **HTTP 200** (the web status code for "OK").
+
+Every answer from this API carries two timestamps:
+
+| Field | Set by | Meaning |
 |---|---|---|
-| `createdDateTime` | The vehicle side (the `fms-forwarder` service) | When the data was actually produced. **This is the truth.** |
-| `receivedDateTime` | The server, at the moment you ask | Just "the time now" on the server. It **always** looks fresh. |
+| `createdDateTime` | the vehicle side (`fms-forwarder`) | when the data was produced: **the truth** |
+| `receivedDateTime` | the server, at the moment you ask | "now" on the server: it always looks fresh |
 
-When the vehicle side stops, `createdDateTime` freezes but `receivedDateTime` keeps ticking, and the HTTP code stays
-200. So the server looks perfectly healthy while serving old data. This is called a **silent failure** (a failure
-that produces no error message, so normal monitoring does not notice it).
+When the vehicle side stops, `createdDateTime` freezes, `receivedDateTime` keeps ticking, and the API still answers
+200. The data is **stale** (old and no longer refreshed) while every health check says "healthy". That is a **silent
+failure** (a failure with no error message, so normal monitoring misses it).
 
-What our tool shows on screen during a fault (a real run):
+We call data **STALE** when it is more than 5 seconds old or `createdDateTime` has not moved for 5 seconds
+(`config/safety.json`, `stale_threshold_s: 5.0`), otherwise **FRESH**. We only call a system **recovered** when
+`createdDateTime` advances again three times in a row, each fresh and with HTTP 200, after the fault is undone. HTTP 200
+alone never counts.
 
-```
-HTTP 200  createdDateTime=09:21:59.394  receivedDateTime=09:22:04.552  age=5.159s   STALE  <- HTTP 200 but STALE
-HTTP 200  createdDateTime=09:21:59.394  receivedDateTime=09:22:11.304  age=11.911s  STALE  <- HTTP 200 but STALE
-```
+In 16 of the 17 committed `telemetry_stall` run records the API answered HTTP 200 on 100 % of the polls during the fault
+while the data froze; the 17th (`20261010T084842Z-baf896`) latched with an error and recorded no fault-window ratio
+(`reports/day1/`, `reports/day2/`, `reports/guardrail-demo/`, `reports/team-sessions/`).
 
-**How we judge freshness.** Data is **STALE** if either check fails:
-- **Age:** `server time − createdDateTime` is more than 5 seconds.
-- **Progression:** `createdDateTime` has not moved forward for more than 5 seconds.
+## 4. The system under test
 
-Why 5 seconds? In normal operation the data was never older than 1.3 s, and it updates about once per second. So
-5 s gives about 3.8 times headroom with zero false alarms in 60 baseline samples (decision D-008).
+We test the **Eclipse SDV Fleet Management Blueprint** (SDV: Software-Defined Vehicle; a blueprint is a ready-made
+reference application). It is open source under Apache-2.0 and is included unchanged in
+`Fleet Management/fleet-management/`, pinned at upstream commit `3d514ac72a`. We never edit its files; our changes go in
+an override file, `config/compose/multiagent-copilot.override.yaml`.
 
----
+It runs as 8 **containers** (isolated packages that each hold one program) started by **Docker Compose** (a tool that
+starts a group of containers from one file) under the project name `multiagent-copilot`:
 
-## 3. The system we test (the Eclipse SDV blueprint)
-
-**SDV** means Software-Defined Vehicle (a vehicle whose features are mostly controlled by software that can be
-updated, rather than fixed hardware). **Eclipse SDV** is an open-source community run by the Eclipse Foundation that
-builds shared software for such vehicles.
-
-We test their **Fleet Management Blueprint** (a ready-made reference application that shows how to collect data from
-a fleet of trucks). It is open source under the **Apache-2.0 licence** (a permissive licence that lets anyone use and
-modify the code). We include it unchanged as a **git submodule** (a pointer to another Git repository, pinned to an
-exact version, here commit `3d514ac72a`) in `Fleet Management/fleet-management/`.
-
-It runs as 8 **containers** (small, isolated packages that each hold one program plus everything it needs to run)
-started together with **Docker Compose** (a tool that starts a group of containers from one description file):
-
-| Container | What it does, in plain English |
-|---|---|
-| `csv-provider` | Pretends to be a truck: replays recorded truck signals from a CSV file, over and over |
-| `databroker` (Eclipse KUKSA) | The in-vehicle "notice board" where signals are posted and read, using the **VSS** standard (Vehicle Signal Specification: a common naming scheme for vehicle data) |
-| `fms-forwarder` | Reads the notice board, builds a vehicle status about once per second, **stamps `createdDateTime`**, and sends it out |
-| `fms-zenoh-router` (Eclipse Zenoh) | The message router between the vehicle and the cloud (Zenoh: a fast publish/subscribe messaging protocol, where senders publish messages and interested receivers subscribe to them) |
-| `fms-consumer` | Cloud side: receives statuses and writes them into the database |
-| `influxDB` | A **time-series database** (a database built for values that change over time, each stored with a timestamp) |
-| `fms-server` | The **rFMS API** (rFMS: a truck-industry standard API for reading fleet data) that fleet operators call |
-| `grafana` | A charting tool for viewing the data (not on the data path) |
-
-We did not choose Zenoh, KUKSA or InfluxDB; they come with the blueprint. We test the system **as its authors built
-it**, not a simplified copy.
-
-Two small local adaptations (we never edit the blueprint files themselves):
-- **Network type:** the blueprint uses `overlay` networks, which need Docker Swarm (Docker's multi-machine cluster
-  mode). Our override file `config/compose/multiagent-copilot.override.yaml` switches them to `bridge` (single-machine
-  networks) with the same layout (decision D-002).
-- **Line endings:** on Windows, Git can convert file line endings and break a database start-up script; `stack-up.sh`
-  fixes this automatically (D-005).
-
----
-
-## 4. How Multi-Agent Copilot works: all the parts
-
-Our code is a **Python** package in `backend/multiagent_copilot/`. Each file has one job:
-
-| Layer | File | Job, in plain English |
+| Container | Role | Can we inject a fault? |
 |---|---|---|
-| **Observe** | `sdv_adapter.py` | Calls the fleet API (`GET /rfms/vehiclestatuses`) and reads the answer. Read-only. |
-| | `telemetry.py` | Decides FRESH or STALE for each answer, using `createdDateTime`, never the HTTP code. |
-| | `baseline.py` | Records normal behaviour (a **baseline**: a set of measurements taken when nothing is wrong, used for comparison). |
-| **Control** | `safety.py` | The **safety controller**: checks every request, holds the "one experiment at a time" lock, and can lock the whole tool in an unsafe state. |
-| | `orchestrator.py` | Runs one experiment step by step (check, inject, watch, roll back, verify). |
-| | `faults.py` | **Fault adapters**: the only code that pauses/stops and unpauses/starts a container. |
-| | `guardrails.py` | Automatic tripwires that abort an experiment early if errors, slowness or side effects appear. |
-| | `docker_cli.py` | The single gateway to Docker. Tests replace it with a fake, so they need no real Docker. |
-| **Evidence** | `evidence.py` | Saves one JSON file per run with every poll, every action, and every timing. |
-| **Analyse** (read-only) | `scoring.py` | Computes the Resilience Score (section 8). |
-| | `planner.py` | Ranks which experiment to run next (rule-based). |
-| | `findings.py` | Turns run records into a ranked findings report. |
-| | `discover.py` | Re-discovers how containers depend on each other from `docker inspect` and compares it with our map. |
-| | `insights.py` | Packs score, plan and findings for the dashboard. |
-| **Advise** | `ai.py` | The optional AI advisor (section 10). |
-| **Interfaces** | `__main__.py` | The `mcop` command-line tool. |
-| | `api.py` + `static/dashboard.html` | The local web server and the dashboard page (section 9). |
-| | `explainer.py` | Builds a standalone HTML report of a run (`mcop report`). |
+| `csv-provider` | fake truck: replays recorded signals | no (read-only) |
+| `databroker` | Eclipse KUKSA: in-vehicle signal store | no |
+| `fms-forwarder` | builds a vehicle status about once per second and stamps `createdDateTime` | **yes**: pause, or stop/start |
+| `fms-zenoh-router` | Eclipse Zenoh: message router vehicle -> cloud | no |
+| `fms-consumer` | writes statuses into the database | no |
+| `influxDB` | time-series database (values stored with timestamps) | **yes**: stop/start |
+| `fms-server` | the **rFMS API** (a truck-industry standard API) that we and fleet operators read | no (we only read it) |
+| `grafana` | charts; not on the data path | no |
 
-Other important folders:
+Data flow: `csv-provider -> databroker -> fms-forwarder -> fms-zenoh-router -> fms-consumer -> influxDB -> fms-server ->
+our observer (HTTP GET /rfms/vehiclestatuses)`. If any link from the forwarder to the database breaks,
+`createdDateTime` stops advancing while `fms-server` can keep answering 200. The verified map with evidence is in
+`config/dependency_map.json`. Only `fms-forwarder` and `influxDB` are on the experiment allowlist
+(`config/experiments.json`); everything else is read-only for us.
 
-| Folder | What is in it |
+## 5. Repository map
+
+| Path | What it holds |
 |---|---|
-| `contracts/` | **JSON Schemas** (strict machine-readable rules for what a valid message looks like) for experiment requests, observations and run records |
-| `config/` | `safety.json` (limits), `experiments.json` (the allowlist of experiments), `dependency_map.json` (which container talks to which, with evidence), `ai.json` (AI settings), `profiles/` (GUARDRAIL-DEMO overlays, see §7) |
-| `scripts/` | Start/stop the stack, check status, the **kill switch**, and the Day-1 demo |
-| `reports/` | Committed evidence from real runs (`day1/`, `day2/`) |
-| `backend/tests/` | 317 automated tests (320 with the live tests) |
+| `README.md` | Front page: results, quick start, commands, the multi-agent section, safety model, limitations |
+| `CLAUDE.md` | Engineering instructions and the non-negotiable safety rules (also used by AI coding sessions) |
+| `Fleet Management/fleet-management/` | The vendored upstream blueprint (do not edit) |
+| `config/` | `safety.json` (limits, Compose label), `experiments.json` (the allowlist), `dependency_map.json`, `ai.json` (local LLM settings), `profiles/` (tighten-only guardrail demo overlays), `compose/multiagent-copilot.override.yaml` |
+| `contracts/` | **JSON Schemas** (strict rules for valid data): experiment request, observation, run record, `team_session.schema.json` |
+| `backend/multiagent_copilot/` | The Python package. Observe: `sdv_adapter.py`, `telemetry.py`, `baseline.py`. Control: `safety.py`, `orchestrator.py`, `faults.py`, `guardrails.py`, `docker_cli.py`. Evidence: `evidence.py`. Analyse: `scoring.py`, `planner.py`, `findings.py`, `discover.py`, `insights.py`. Advise: `ai.py`. Interfaces: `__main__.py` (the `mcop` CLI), `api.py` + `static/dashboard.html`, `explainer.py`. Data-quality gate: `dq/` |
+| `backend/multiagent_copilot/agent_team/` | The agent layer: `trace.py` (session models), `agents.py` (Monitor, Planner, Analyst), `executor_agent.py` (Safety Executor), `pipeline.py` (the five stages) |
+| `backend/tests/` | Unit tests and live tests (`test_live.py`, run with `MCOP_LIVE=1`); team tests are `test_team_*.py` |
+| `backend/data/` | Local runtime data, not committed: run records, baselines, `team_sessions/`, safety state, `run.lock` |
+| `scripts/` | `stack-up.sh`, `stack-status.sh`, `stack-down.sh`, `kill-switch.sh`, `demo-day1.sh`, `build_scene_data.py`, deck builders |
+| `reports/` | Committed evidence from real runs: `day1/`, `day2/`, `guardrail-demo/`, `team-sessions/` |
+| `docs/` | This guide, design and architecture docs, decisions, demo scripts, recon, testing and safety reviews |
 
----
-
-## 5. The pipelines (how data and actions flow)
-
-A **pipeline** here means a chain of steps that data or actions pass through, in order.
-
-### 5.1 The telemetry pipeline (the blueprint's data path)
-
-```mermaid
-flowchart LR
-  CSV[csv-provider<br/>fake truck] -->|gRPC| DB[(KUKSA databroker)]
-  FWD[fms-forwarder<br/>stamps createdDateTime] -->|gRPC read| DB
-  FWD -->|Zenoh| ZR[Zenoh router] -->|Zenoh| CON[fms-consumer]
-  CON -->|write| IDB[(InfluxDB)]
-  SRV[fms-server<br/>rFMS API] -->|query| IDB
-  CLIENT[Fleet operator / Multi-Agent Copilot] -->|HTTP GET| SRV
-```
-
-(**gRPC**: a fast way for programs to call each other over a network.) If any link from the forwarder to InfluxDB
-breaks, `createdDateTime` stops advancing, but `fms-server` can keep answering 200.
-
-### 5.2 The experiment pipeline (one run, step by step)
-
-Every experiment moves through fixed states (a **state machine**: a design where something can only be in one
-defined state at a time and moves between states by fixed rules):
-
-```
-VALIDATED → PRECHECK → INJECTING → ACTIVE → ROLLING_BACK → VERIFYING_RECOVERY → COMPLETED
-                                                                         └→ ABORTED or LATCHED_UNSAFE
-```
-
-| Step | What happens |
-|---|---|
-| **VALIDATED** | The request is checked against the schema and allowlist; Docker confirms the target belongs to our sandbox; the run lock is taken. |
-| **PRECHECK** | 3 fresh polls in a row are needed, or the run is refused (we never break an already-broken system). |
-| **INJECTING** | A "fault marker" file is written **before** the fault (so a crash can be cleaned up later), the watchdog is armed, and the fault is applied. |
-| **ACTIVE** | Docker confirms the fault is really active; the API is polled every 0.5 s; guardrails watch for side effects. |
-| **ROLLING_BACK** | The fault is undone, and `docker inspect` confirms it. |
-| **VERIFYING_RECOVERY** | We wait for `createdDateTime` to advance 3 times, fresh and with HTTP 200. |
-| **COMPLETED** | Marker removed, lock released, evidence saved. |
-| **LATCHED_UNSAFE** | Rollback or recovery could not be proven. Everything is blocked until a human checks and resets. |
-
-A real 12-second run (`reports/day1/20261010T094045Z-3155f1.json`): fault applied at 1.6 s, stale detected at 6.5 s
-(4.8 s after the fault), rollback at 13.6 s, recovery verified at 17.7 s.
-
-### 5.3 The evidence and analysis pipeline
-
-```
-run record (JSON) → mcop score → mcop findings → mcop plan → (optional) mcop advise (AI)
-         └──────────→ dashboard /api/insights ────────────┘
-```
-
-Every number on the dashboard and in reports is read from these run records. Analysis is **read-only**: it can never
-start or stop a fault.
-
-### 5.4 The development pipeline (how the team worked)
-
-- Work on feature branches (`feat/...`, `fix/...`, `docs/...`), open a **pull request** (PR: a proposed change that
-  others review before it is merged), run tests, merge to `main`. 21 PRs so far.
-- Safety changes get an independent safety review (`docs/testing/SAFETY_REVIEW.md`).
-- Every design choice is logged in `docs/DECISIONS.md` (D-001 to D-022).
-- `docs/coordination/HANDOFF.md` lets anyone (or a new AI session) continue the work.
-
-There is no cloud **CI** (Continuous Integration: a server that runs the tests automatically on every change); tests
-are run locally before each merge.
-
----
-
-## 6. The three experiments
-
-All experiments are listed in `config/experiments.json`. Nothing outside this list can ever run.
-
-| Experiment | What we break | How | Max time | What we learned |
-|---|---|---|---|---|
-| `telemetry_stall` | `fms-forwarder` | `docker pause` (freeze the container; `unpause` thaws it with nothing lost) | 30 s | HTTP 200 on **every** poll while data froze. Stale detected 4.8 to 5.3 s after the fault. Recovered 2.6 to 3.7 s after rollback. |
-| `service_crash` | `fms-forwarder` | `docker stop` then `docker start` (a crash and restart) | 15 s | Same silent failure. The forwarder ignores the polite shutdown signal and is always force-killed. Recovered in 2.5 to 3.7 s. |
-| `dependency_failure` | `influxDB` | `docker stop` then `docker start` | 15 s | The API visibly fails (HTTP 500, the "server error" code), which is good. But after the database returns, services keep failing to find it by name for 20 to 24 s, and the API serves **old data as HTTP 200** during that time. Up to 30 s of stored data was lost. |
-
-**Why no network-slowdown experiment?** The brief asked for one "where the architecture supports it". There is no
-**proxy** (a middleman program that traffic passes through and that can be told to slow it down) on the data path,
-so we did not claim one. That is an honest gap, not an oversight (D-004).
-
----
-
-## 7. The safety model
+## 6. The safety model
 
 Breaking things on purpose is only acceptable if it is safe. These rules are enforced in code and covered by tests:
 
-| Rule | In plain English |
-|---|---|
-| **Sandbox only** | Only exact, allowlisted container names that also carry our Compose project label (`multiagent-copilot`). Nothing else on the machine can be touched. |
-| **Allowlist only** | Only the 3 predefined experiments. Requests with unknown fields are rejected (strict validation). |
-| **One at a time** | A lock file (`backend/data/run.lock`) stops two experiments running at once, even from two terminals. |
-| **30-second cap** | A **watchdog** (an independent timer thread that forces a rollback when time runs out) enforces the limit, even if the main loop hangs. |
-| **Emergency stop** | Three ways: dashboard **Kill** button, `mcop stop`, and `scripts/kill-switch.sh`, which works **even if our backend has crashed**. |
-| **Rollback always** | On completion, cancel, timeout, lost observation, any error, or a guardrail trip. |
-| **Guardrails** | Abort early on unexpected errors, slowness (latency above 5 times normal), or any change to a container outside the experiment's **blast radius** (the set of things an experiment is allowed to affect). All three guards (error rate, latency, blast radius) have each stopped a live run (§13). |
-| **Demo profiles** | `MCOP_CONFIG_PROFILE=guardrail-demo-…` loads a labelled overlay with deliberately tight thresholds, used only to show the guardrails firing live. Profiles are **tighten-only** (a value can only get stricter) and **CLI-only** (the dashboard refuses to start with one set). |
-| **Strict recovery** | Rollback confirmed by Docker **and** 3 fresh, advancing vehicle timestamps. HTTP 200 alone never counts. |
-| **Latch** | If rollback or recovery cannot be proven, the tool locks itself (LATCHED_UNSAFE) until a human checks and runs a logged reset. The reset itself requires fresh, advancing data (D-018). |
-| **Crash safety** | If the backend dies mid-fault, the next start-up undoes the fault and latches (D-011). |
-| **AI is advisory** | The AI has no shell, no Docker access, no credentials and no control of the safety state. |
-| **No fake claims** | Never report an injection, recovery or measurement that was not actually observed. |
+- **Allowlist only.** Only the three predefined experiments in `config/experiments.json`, against their listed
+  targets. Requests are validated strictly; unknown fields are rejected.
+- **Sandbox only.** A target must have the exact allowlisted container name **and** the Docker Compose label
+  `com.docker.compose.project = multiagent-copilot`. A same-named container from another project is refused. The label
+  is set by `scripts/_compose.sh` and checked against `config/safety.json`; `backend/tests/test_label_consistency.py`
+  fails if any copy differs.
+- **One at a time, 30 s maximum.** A lock file allows one experiment across processes; total fault time including the
+  watchdog grace is at most 30 s. A **watchdog** (an independent timer thread) forces rollback when time runs out.
+- **Kill switch.** Emergency stop from the dashboard, `mcop stop`, or `scripts/kill-switch.sh`, which works even if the
+  backend has crashed: it writes an `EMERGENCY_STOP` file and unpauses or starts the allowlisted targets.
+- **Rollback always** (undoing the fault): on completion, cancel, timeout, lost observation, any error, or a
+  **guardrail** trip (automatic limits on error rate, latency and **blast radius**: the set of containers an experiment
+  may affect).
+- **Strict recovery** as in section 3. If rollback or recovery cannot be proven, the tool **latches**
+  (`LATCHED_UNSAFE`): no new experiments until a person checks the stack and runs a logged reset.
+- **No `shell=True`, no free-form commands.** Docker is driven through one wrapper (`docker_cli.py`) with fixed
+  arguments; nobody, including the AI, can supply a command string.
+- **Deterministic safety path.** Stop, rollback, recovery checking and latching contain no LLM and no network call to
+  an AI. The AI (local Ollama only) is advisory: no shell, no Docker, no credentials, no safety state. This is enforced by
+  import-guard tests (`test_ai.py`, `test_team_import_guard.py`), because an AI that could influence the safety path
+  could, in principle, keep a fault running or claim a recovery that did not happen.
+- **No fake claims.** Never report an injection, recovery or measurement that was not observed.
 
----
+## 7. The experiments
 
-## 8. The Resilience Score
+| Experiment | Injects | Bounds (catalogue max) | Predicted symptom | Measured (committed runs) |
+|---|---|---|---|---|
+| `telemetry_stall` | `docker pause fms-forwarder` (freeze; unpause loses nothing) | 30 s | `createdDateTime` stops, HTTP stays 200, data age grows past 5 s | HTTP 200 on every fault poll (16 of 17 records; one latched with an error); stale detected 4.768–5.332 s after injection in the full-window runs |
+| `service_crash` | `docker stop` then `docker start fms-forwarder` | 15 s | same silent symptom; slower return than unpause | same silent symptom (Day 2, `reports/day2/`) |
+| `dependency_failure` | `docker stop` then `docker start influxDB` | 15 s | HTTP 500 during the fault (visible), stored-data gap | visible 500s, but stale data served as HTTP 200 for about 21–24 s after the database returned in two runs (`reports/day2/findings.md`) |
 
-A 0 to 100 grade for how the **system under test** (the blueprint, not our tool) behaved during one fault. Details:
-`docs/SCORING.md`.
+All three share the global 30 s cap and the guardrails. There is no network-slowdown experiment: no proxy exists on the
+data path, so we do not claim one (decision D-004).
+
+## 8. The agent team
 
 ```
-Score = 100 × (weighted average of measured parts) × (1 − 0.5 × share of silent polls)
+Monitor -> Planner -> HUMAN GATE -> Safety Executor -> Analyst
 ```
 
-| Part | Weight | Measures |
-|---|---|---|
-| Detection (**MTTD**: mean time to detect) | 0.25 | How quickly the problem became visible |
-| Recovery (**MTTR**: mean time to recover) | 0.30 | How quickly fresh data returned after rollback |
-| Data integrity | 0.20 | How much stored data was lost |
-| Blast radius | 0.25 | Whether anything outside the target changed |
-| Silent-failure penalty | multiplier | Cuts the score by up to half if the API said 200 while serving stale data |
+Four agents with distinct roles coordinated by an explicit Python pipeline that records every hand-off in a trace:
 
-Parts that were not measured are left out, never guessed. Day-2 medians: telemetry_stall 62.2, service_crash 65.1,
-dependency_failure 61.6.
-
----
-
-## 9. The frontend (the live dashboard)
-
-Start it with `mcop serve`, then open **http://127.0.0.1:8765/**. It is one HTML file
-(`backend/multiagent_copilot/static/dashboard.html`, 290 lines) served by the local API.
-
-### 9.1 What is on the page
-
-| Component | What it shows | Where the data comes from |
-|---|---|---|
-| **Header chips** | Controller state (READY / BUSY / LATCHED_UNSAFE) and current phase | `GET /api/status` |
-| **Banner** | Big warning such as "STALE while HTTP 200" | Live status |
-| **Data-age gauge** | A dial (drawn in SVG, a format for drawing shapes in the browser) showing how old the vehicle data is, with the 5 s stale mark | `createdDateTime` |
-| **HTTP status chip** | The API's answer code; the point is to show it stays 200 while data goes stale | Live poll |
-| **Latest observation** | `createdDateTime` vs `receivedDateTime` vs time observed: the problem in one table | Live poll |
-| **Phase timeline** | The run's steps lighting up: Precheck → Fault active → Stale detected → Rolling back → Recovered | Run state |
-| **60-second chart** | Data age over the last minute; red when stale | Live polls |
-| **Controls (experiment picker)** | The planner's **ranked proposals**, each with *Why* (reasons), *Predicted* (expected symptoms) and *Risks*. You pick **one** experiment, type **your name**, and click **Approve & start** (a confirm dialog repeats the pick). Also **Kill** (emergency stop) and **Reset** (only when blocked, with a warning) | `GET /api/proposals`, `POST /api/run`, `/api/kill`, `/api/reset` |
-| **Last run card** | Rollback verified? Recovery verified? Timings | The run's evidence record |
-| **Source toggle** | Switch between "Local runs" and "Committed Day-2 evidence" | `GET /api/insights?source=...` |
-| **Resilience Score card** | Latest score with a bar for each part and the silent penalty | `scoring.py` |
-| **Score by experiment** | Median and range per experiment type | `scoring.py` |
-| **Recent runs** | The last 10 runs (experiment history) | Run records |
-| **Next experiments** | Planner proposals for the selected evidence source, as text (run one from Controls) | `planner.py` |
-| **Findings** | Ranked findings with human notes | `findings.py` |
-
-The page refreshes the live status every 0.5 s.
-
-### 9.2 Why this frontend is genuinely good
-
-- **Real data only.** Every number comes from the live API or a stored run record. Nothing is mocked or simulated.
-- **It cannot bypass safety.** A run request carries exactly two things: an experiment ID from the catalogue and the
-  approver's typed name. The **server** picks the target and duration from the catalogue; any extra field, unknown ID
-  or blank name is refused (HTTP 422). If an experiment is already running it answers 409 (busy); if the tool is
-  latched, 423 (locked). The page can only **ask**; the safety controller decides.
-- **A real person approves.** The typed name is stored in the run record (no shared "dashboard-operator" account),
-  and what the approver saw (rank, reasons, predicted symptoms, risks) is saved next to the run.
-- **Private by default.** The server only listens on `127.0.0.1` (your own computer), so nobody on your network can
-  reach it.
-- **Zero build, zero dependencies.** No **framework** (a large ready-made code library such as React), no **npm**
-  (the JavaScript package manager), no build step, and no internet links. It works offline and cannot break because
-  a library changed.
-- **Shows the story at a glance.** The green 200 chip next to a red stale gauge makes the silent failure obvious to a
-  non-expert in seconds.
-- **Light and dark mode**, and checked at narrow widths with no sideways scrolling.
-- **Tested.** 38 API test cases in `backend/tests/test_api.py`, plus live runs started through it (e.g.
-  `20261010T233453Z-958562`).
-
-### 9.3 What the frontend does not do (yet)
-
-- No dependency-graph picture on the dashboard (it is available as `mcop deps`, `mcop discover` and in the `mcop report`
-  HTML page).
-- Proposals on the page come from the rule-based planner; the AI ranking is only in `mcop advise`.
-- AI advice and report export are CLI commands (`mcop advise`, `mcop findings`, `mcop report`), not dashboard buttons.
-
----
-
-## 10. The AI agent: what it is and how it helps
-
-### 10.1 What we use
-
-- **Model:** `qwen2.5:7b` (an **LLM**, Large Language Model: an AI that reads and writes text; "7b" means about
-  7 billion internal parameters, small enough for a laptop).
-- **Runtime:** **Ollama** (a free tool that runs LLMs on your own computer instead of in the cloud), on
-  `http://127.0.0.1:11434`.
-- **Settings** (`config/ai.json`): temperature 0 and a fixed seed (**temperature** controls randomness; 0 and a fixed
-  seed make the answers repeatable), 240 s timeout.
-- **Command:** `mcop advise` (or `mcop advise --offline` for the rule-based answer with no AI).
-- **Logging:** every model call is saved with its exact prompts, the raw response, the model name and the validation
-  result (`data/ai_calls/<time>.json`; an example is committed in `reports/day2/ai_calls/`).
-
-### 10.2 The two AI roles
-
-| Role | What it does |
-|---|---|
-| **AI Planner** | Suggests the order in which to run the allowlisted experiments, with a reason. |
-| **AI Analyst** | For each finding, explains a likely **root cause** (the underlying reason something failed) and a step-by-step fix plan (verify, mitigate, fix). |
-
-### 10.3 How it is kept safe and honest
-
-- **No power.** The AI module may only import a few basic libraries. A test fails if it ever imports anything that can
-  reach Docker, the shell or the safety controller. It only ever produces text for a human to read.
-- **Local only.** Any non-local AI address is refused, so no data leaves your machine.
-- **Planner can only reorder.** Its answer must be an exact reordering of the allowed experiments; commands and
-  durations always come from the rules, and a human still has to approve every run.
-- **Grounding check** (verifying the AI's claims against the recorded facts). Each root cause must name the component
-  the evidence points to, must not blame a component the evidence rules out, and must not state guesses as facts.
-  If it fails, that answer is replaced by the rule-based one, and the rejected text and the reason are kept in the
-  report.
-- **Always a fallback.** If Ollama is off, slow or returns bad output, the deterministic rule-based answer is used.
-
-### 10.4 How it actually helped (measured, not hoped)
-
-- **Planner:** always gave a valid order, the same as our rule-based planner. It confirms the ranking but adds little.
-- **Analyst:** in both recorded real calls, 1 of 7 answers passed the grounding check (it correctly said "data loss is caused by `fms-consumer`
-  dropping writes"). The other 6 were rejected because they contradicted the evidence, for example by blaming DNS
-  caching (DNS: the system that turns names into network addresses) as a fact when it was only a hypothesis.
-  (The name-resolution cause itself is also only a hypothesis: the container-log excerpts are not committed.)
-- The rejected answers became **regression tests** (tests that make sure a mistake that happened once is always
-  caught in future).
-- A larger model (`qwen2.5-coder:14b`) was tried, but it timed out on a 16 GB laptop.
-
-**The honest conclusion:** the reliable analysis comes from the deterministic layer (score, findings, planner). The AI
-is a helpful second opinion that adds natural-language explanation, and it is never trusted blindly. Showing that the
-AI was checked and caught out is part of the project's value.
-
-### 10.5 The AI that built the project
-
-Separately from the AI inside the product, much of the code and documentation was written with **Claude Code**
-(Anthropic's AI coding assistant), as disclosed in the commit messages. All measurements come from real runs.
-
----
-
-## 11. Tech stack: what we used and why we chose it over alternatives
-
-| We used | For | Why we chose it | Alternatives we did not choose, and why |
+| Stage | Job | Uses the LLM? | Wraps |
 |---|---|---|---|
-| **Eclipse SDV Fleet Management Blueprint** | The system under test | Real, open-source, Apache-2.0, prebuilt images, runs fully locally | Writing our own mock vehicle system: the brief forbids silently replacing the real system with a mock. The blueprint's Hono variant needs an external sandbox, so we used the local Zenoh variant (D-001). |
-| **Docker + Docker Compose** | Running the 8 services | The blueprint ships Compose files; everyone gets identical versions; pause/stop are clean and reversible | **Kubernetes** (a system for running containers across many machines): too heavy for one laptop and not needed. **Docker Swarm**: needed only for `overlay` networks, so we switched to `bridge` instead. |
-| **Docker CLI via one wrapper** | Pausing/stopping containers | One small file, easy to fake in tests; the AI never sees it | The Docker SDK or raw Docker socket: a bigger attack surface and harder to fake. |
-| **Python 3.13** | All our code | Installed already, typed, fast to write and test (D-007) | Go, Java or Node.js: no real advantage here, and slower to iterate for this team. |
-| **pydantic** | Validating requests | Rejects any unknown field automatically (`extra="forbid"`) | Hand-written checks: easy to miss a case. |
-| **httpx** | Calling the API | Precise timeouts per request, needed for the response envelope | `requests`: less control over timeouts; no async option. |
-| **FastAPI + uvicorn** | The local web API and dashboard server | Small, typed, built-in validation, easy to test | Flask (less built-in validation), Django (far too large for a few endpoints). |
-| **Vanilla HTML/CSS/JS + SVG** | The dashboard | No build, no npm, no internet; one file to review | React, Vue or Angular: a build toolchain and many dependencies for a single page. Grafana: cannot show our safety state or controls. |
-| **pytest** | 317 automated tests (320 with live tests) | The Python standard for tests; simple fakes | unittest: more boilerplate. |
-| **Ollama + qwen2.5:7b** | Optional AI advisor | Free, runs offline on a laptop, no data leaves the machine, repeatable settings | Cloud LLM APIs (OpenAI, Anthropic, etc.): would send fleet data off the machine and need keys and internet; we wanted the AI fully local and replaceable. Training our own model: the brief says not to without a strong reason. |
-| **Container pause / stop as faults** | Fault injection | Real, reversible, verifiable with `docker inspect`, and on the verified data path | Chaos tools such as Chaos Mesh or LitmusChaos (built for Kubernetes), Toxiproxy (a proxy that would have to be inserted into the path, changing the system), Gremlin (commercial cloud service). Our own small adapters keep the safety controller in full control. |
-| **JSON files as the evidence store** | Run records | Human-readable, easy to commit as proof, no database to run | SQLite or PostgreSQL: unnecessary for tens of runs, and harder to review in Git. |
-| **Git + GitHub PRs** | Teamwork | Review before merge, full history | — |
+| **Monitor** | Polls the API 6 times, judges each poll FRESH/STALE, checks a baseline exists. Unhealthy -> session refused, nothing planned or run | never | `RfmsObserver`, `FreshnessTracker`, stored baseline |
+| **Planner** | Ranks the allowlisted experiments by rules (information value and risk). With `--ai` the local LLM may only reorder them | optional | `planner.plan`, `ai.ai_plan` |
+| **Human gate** | A named person picks one proposal, types their name and `APPROVE` (or gives both `--experiment` and `--approved-by`) | human | `ApprovalRecord` |
+| **Safety Executor** | Runs the approved experiment through the safety controller exactly like `mcop run`; never retries | never | `SafetyController`, `ExperimentRunner` |
+| **Analyst** | Scores the run, derives findings, explains them; AI explanations must pass a **grounding check** (they must match the recorded evidence) | optional | `scoring`, `findings`, `ai.ai_analyse` |
 
----
+**Why two agents never use the LLM.** The Monitor decides whether it is safe to proceed and the Safety Executor touches
+Docker. Both must give the same answer every time and must not be talked into anything, so both are deterministic on
+purpose. **The fallbacks:** if the LLM is off, slow, or returns something invalid, the Planner keeps the rule order and
+the Analyst uses rule-based text; the trace records `status: fallback` and the `fallback_reason`.
 
-## 12. Hackathon guidelines checklist
+**Import-guard separation.** Tests read the source code and fail if `agents.py` imports the safety controller,
+orchestrator, faults, Docker wrapper or a shell; if `executor_agent.py` imports the AI client, `httpx` or `requests`; or
+if `pipeline.py` imports anything beyond the agents and the trace. A second test starts a fresh Python and checks that
+loading the executor never loads the AI module.
 
-Measured against `docs/BRIEF.md`. The brief's **OVERRIDES** section takes priority; where it changed a requirement we
-say so.
+**What the trace records** (`contracts/team_session.schema.json`): per step the agent, its role, whether the LLM was
+consulted, start and end time, a summary of inputs and outputs, the decision, evidence references, the status
+(`ok`/`fallback`/`refused`/`error`) and any fallback reason; plus the approval (who, when, which experiment, and exactly
+what they were shown), the run id and the outcome. Design details: `docs/MULTI_AGENT_DESIGN.md`.
 
-- [x] = done and verified
-- [ ] = not done, or only partly done (the note says which)
+## 9. One session, step by step
 
-### 12.1 Product vision: the 12-step core workflow
-
-- [x] 1. Connect to a verified local SDV application (blueprint, 8 containers)
-- [x] 2. Discover and document service dependencies and the real telemetry path (`config/dependency_map.json`, `mcop discover`, `docs/recon.md`)
-- [x] 3. Collect a normal operating baseline (`mcop baseline`, `reports/day1/baseline-*.json`)
-- [x] 4. AI analyst recommends approved experiments (`mcop advise`, plus the rule-based planner)
-- [x] 5. Present hypothesis, target, expected symptoms, duration and risks (`config/experiments.json`, `mcop plan`)
-- [x] 6. Require approval before execution (`--approved-by`, dashboard confirmation)
-- [x] 7. Inject a bounded, reversible fault through a validated adapter
-- [x] 8. Measure actual behaviour during the fault
-- [x] 9. Roll back and independently verify recovery
-- [ ] 10. Compare predicted vs actual symptoms. **Partly:** hypotheses are recorded per experiment and findings are measured, but there is no side-by-side "predicted vs observed" table.
-- [x] 11. Ranked findings, evidence and remediation (`reports/day2/findings.md`, AI analyst playbooks)
-- [x] 12. Save experiment history and export a reproducible report (`reports/`, `mcop report`, `mcop findings`)
-
-### 12.2 Phase 0: Reconnaissance and specification
-
-- [x] Researched the real blueprint, licence, configuration and telemetry path (`docs/recon.md`)
-- [x] Architecture, decisions, contracts, task board, roadmap
-- [x] Verified facts vs inferences labelled ([V]/[I]/[Q] in recon)
-
-### 12.3 Phase 1: Real pipeline and baseline
-
-- [x] Local SDV integration runs
-- [x] Real telemetry observed
-- [x] Baseline contains real measurements
-- [x] Stale and non-advancing telemetry detected by tested logic
-- [x] Setup is reproducible (fresh clone verified on macOS Apple Silicon on 2026-10-11 with images pulled from scratch: 8/8 containers, all tests, demo exit 0; Windows verified on Days 1–2)
-
-### 12.4 Phase 2: Safety controller and first experiment
-
-- [x] State machine, strict validation, one-active lock, 30 s hard limit
-- [x] Watchdog, emergency stop, rollback, recovery verification, auditable timeline
-- [x] Telemetry-stall experiment on the verified path
-- [x] Tests for success, timeout, cancellation, invalid target, malformed request, concurrent request, observer loss, rollback failure and recovery failure
-
-### 12.5 Phase 3: Additional experiments
-
-- [x] Service crash/restart (`service_crash`)
-- [x] Dependency failure (`dependency_failure`, stopping InfluxDB)
-- [ ] Network degradation. **Not done, on purpose:** no proxy exists on the data path, and the brief says not to assume one.
-- [x] Hypotheses, baseline/fault/recovery observations, stop reason and rollback outcome recorded per run
-- [x] Time-to-detection and time-to-recovery calculated from timestamps
-- [x] Repeated runs with variability reported (n = 2 to 8 per experiment; small samples are stated honestly)
-
-### 12.6 Phase 4: Evidence-driven AI analyst
-
-- [x] Ranks only approved, predefined experiments
-- [x] Uses dependencies, prior outcomes and diagnostic value (rule-based planner score)
-- [x] Structured, validated output (exact-permutation check, schema checks)
-- [x] Human approval still required
-- [x] Findings reference actual evidence (run IDs)
-- [x] Distinguishes confirmed findings from hypotheses (unverified causes must be hedged)
-- [x] Deterministic fallback when the model is unavailable or invalid
-- [x] Tests for timeouts, malformed output and unknown values
-- [ ] Prompt-injection tests. **Not explicit:** there is no dedicated test that feeds hostile instructions to the model. The AI still cannot act on anything, so the risk is limited to misleading text.
-- [x] No custom model trained; the AI cannot override safety
-
-### 12.7 Phase 5: Dashboard and reporting
-
-- [ ] Service/dependency graph with confidence labels. **Partly:** available in the CLI and the `mcop report` page, not on the dashboard.
-- [x] System readiness and live telemetry state
-- [ ] AI-ranked proposals. **Partly:** the dashboard picker shows the rule-based ranking with reasons, predicted symptoms and risks; the AI ranking is in the CLI (`mcop advise`).
-- [x] Human approval controls (pick one experiment, approve with your typed name; recorded with the run)
-- [x] Live experiment state and emergency stop
-- [x] Fault status, rollback status and recovery verification
-- [ ] Predicted vs observed comparison. **Partly** (see 12.1 step 10).
-- [x] Evidence-backed findings
-- [x] Experiment history (Recent runs)
-- [ ] Report export from the UI. **Partly:** reports are exported from the CLI (`mcop report`, `mcop findings`).
-- [x] Real backend state only; no UI action can bypass the safety controller (tested)
-
-### 12.8 Phase 6: Integration and hackathon readiness
-
-- [x] Clean-setup run
-- [x] Each experiment run end to end on the live stack
-- [x] Rollback and recovery verified
-- [x] Unit tests (317) and live tests (320 with `MCOP_LIVE=1`)
-- [x] Failure paths tested
-- [x] Documentation: installation, architecture, testing, limitations
-- [x] Demo script (`docs/demo/DAY2_DEMO_SCRIPT.md`)
-- [x] Screenshots from real runs only
-- [x] Unfinished requirements reported honestly
-- [ ] Demo video recorded (the script is ready; the video link is still marked TO FILL)
-
-### 12.9 Safety requirements (brief section 6)
-
-- [x] Local disposable sandbox only
-- [x] LLM has no shell, Docker or credentials and cannot inject, roll back or decide recovery
-- [x] Predefined experiment types and validated targets only
-- [x] Strict schema validation
-- [x] One active experiment at a time
-- [x] Maximum 30 s
-- [x] Watchdog independent of the AI and frontend
-- [x] Manual emergency stop
-- [x] Rollback on cancel, timeout, threshold violation and observer loss (all three guards also proven live: error rate, latency, blast radius)
-- [x] Recovery from advancing telemetry, never HTTP 200 alone
-- [x] Latched unsafe state with a safe reset
-- [x] Cleanup robust against exceptions and crashes
-- [x] Full record of each run
-- [x] Negative paths tested
-- [x] No fabricated measurements
-
-### 12.10 Structure, Git and teamwork
-
-- [x] `CLAUDE.md`, `README.md`, `.gitignore`, `docs/*`, `contracts/`, `config/`, `backend/`, `backend/tests/`, `reports/`, `scripts/`
-- [ ] Separate `frontend/` and `experiments/` folders. **Equivalent instead:** the dashboard lives in `backend/multiagent_copilot/static/` and the experiment catalogue in `config/experiments.json` (the brief allows equivalent locations).
-- [x] Feature branches, PRs, `main` kept stable, no force-push, no secrets
-- [x] Coordination files (`CURRENT_STATUS.md`, `TASK_BOARD.md`, `HANDOFF.md`)
-- [ ] Five named teammates. **Partly:** the task board defines 5 roles; names in `docs/TEAM_FORM_INFO.md` are still TO FILL.
-- [x] Agent Teams: not used, **by override #3** (single session; subagents for safety review only)
-
-### 12.11 Submission deliverables
-
-- [x] `README.md`
-- [x] `docs/demo/DAY2_DEMO_SCRIPT.md`
-- [x] `docs/ARCHITECTURE_OVERVIEW.md`
-- [x] `reports/day2/findings.md`
-- [x] `docs/TEAM_FORM_INFO.md` (team fields still to fill)
-
----
-
-## 13. Results
-
-From recorded live runs (`reports/day1/`, `reports/day2/`):
-
-| Experiment | Completed runs | Score median (range) | Key measurement |
-|---|---|---|---|
-| telemetry_stall | 8 | 62.2 (60.9–63.5) on Day 2 | HTTP 200 on 100 % of fault polls while data froze |
-| service_crash | 5 | 65.1 (61.9–65.3) | Same silent failure; recovery 2.5–3.7 s |
-| dependency_failure | 3 | 61.6 (57.5–63.2) | Recovery 20.5–24.2 s; stored-data gaps up to 30.7 s |
-
-**Top findings** (`reports/day2/findings.md`):
-1. **Did not recover within 30 s** after a database outage (one run latched).
-2. **Stale data served as HTTP 200 after the fault was removed**, for about 21 to 24 s, while every container looked
-   healthy. This is the strongest finding: a container or HTTP health check would have called it healthy.
-3. **HTTP 200 while telemetry was stale** in every forwarder pause and crash.
-4. **Slow recovery** and **stored data lost** during database outages (no buffering).
-
-**Guardrails proven live** (`reports/guardrail-demo/`, deliberately tight demo profiles):
-
-| Guard | Run | Result |
-|---|---|---|
-| Blast radius | `20261010T182500Z-4aa9f7` | Tripped (deliberate Grafana restart), rollback, latch |
-| Error rate | `20261010T234226Z-e3e15c` | First attempt: guard not exercised (no answer within 8 s) |
-| Error rate | `20261010T234332Z-77b84c` | Guard tripped, then fail-closed latch on 30 s recovery |
-| Latency | `20261011T000246Z-46ea3d` | First attempt: armed, not tripped (polls 44–72 ms, threshold 76.84 ms) |
-| Latency | `20261011T002904Z-8ad2b8` | Guard tripped with a deliberately tight threshold (30.89 ms > 30 ms), rollback and recovery verified |
-
-Every run record made from 2026-10-11 also stores the host platform (OS and CPU); `reports/day2/findings.md` shows
-it next to the statistics. All measurements so far come from one Windows laptop (Days 1–2) and one Apple Silicon Mac,
-where `fms-server` and `fms-consumer` run emulated; timings are not directly comparable across them.
-
----
-
-## 14. Roadmap: what was built when, and what comes next
-
-| Phase | Goal | Status |
-|---|---|---|
-| 0 | Research the real system, plan, contracts | Done (Day 1) |
-| 1 | Run the real pipeline, baseline, stale detection | Done (Day 1) |
-| 2 | Safety controller, first experiment, kill switch, verified recovery | Done (Day 1) |
-| 3 | More experiments (crash, dependency failure), guardrails, repeated runs | Done (Day 2), except network degradation |
-| 4 | AI planner and analyst, scoring, findings | Done (Day 2) |
-| 5 | Live dashboard with insights and an experiment picker | Done (Days 1–3), with the gaps listed in 9.3 |
-| 6 | Clean setup, docs, demo script, submission pack | Done, except the demo video |
-| Fix list | Clean run on Apple Silicon, wording, picker, live guardrail evidence, privacy | Done (PRs #7, #22–#30). Code frozen |
-
-**Sensible next steps:**
-- Record the demo video and fill in the team details.
-- Add a predicted-vs-observed table and the dependency graph to the dashboard.
-- More `dependency_failure` runs (n = 3 is small).
-- New experiments on the verified path: pause `fms-consumer`, pause the Zenoh router.
-- Network degradation only if a real mechanism can be placed on the path (for example `tc netem`, a Linux tool that
-  slows or drops network traffic).
-- Two safety follow-ups from the review (listed in `docs/ROADMAP.md`): an in-memory latch fallback and a safer order
-  of steps in `reset()`.
-- Prompt-injection tests for the AI layer.
-- An outside watchdog process, so a hard-killed backend cannot leave a fault running.
-
----
-
-## 15. How to run it
-
-Prerequisites: Docker Desktop (running), Python 3.13, Git.
+The committed session `reports/team-sessions/20261102T151952Z-8b5eaa.json` (readable `.txt` beside it; its run record
+`20261102T151955Z-56a912.json` is in the same folder) was run on 2 November 2026 on Windows with:
 
 ```bash
-git clone https://github.com/Anshu-raj-co/Multi_Agent_AI_Copilot.git && cd Multi_Agent_AI_Copilot
-git -c core.longpaths=true submodule update --init    # long-paths flag avoids "Filename too long" on Windows
-./scripts/stack-up.sh && ./scripts/stack-status.sh     # starts 8 containers; status exits 1 if any is down
-cd backend
-python3.13 -m venv .venv                               # a private Python environment for this project
-.venv/bin/pip install -e ".[test]"
-.venv/bin/python -m pytest -q                          # expect 317 passed, 11 skipped
-.venv/bin/mcop status                                    # must say READY
-.venv/bin/mcop serve                                     # dashboard at http://127.0.0.1:8765/
+.venv/Scripts/mcop team run --experiment telemetry_stall --approved-by "Anshu" --no-ai
 ```
 
-Stop everything with `./scripts/stack-down.sh`. On Windows use `.venv/Scripts/` instead of `.venv/bin/`.
+`--no-ai` was used because Ollama was not running; the fallback is by design.
 
-Tested on Windows 11 (x86-64) and macOS on Apple Silicon. Free local ports needed: 8081, 8086, 3000, 7447 and 55557
-(the databroker; move it with `MCOP_DATABROKER_HOST_PORT`). On Apple Silicon two images run emulated as linux/amd64.
+1. **Monitor** (2.65 s, ok): 6 of 6 polls FRESH, HTTP 200 6 of 6, `createdDateTime` advanced, max data age 0.78 s,
+   baseline `baseline-20261102T150125Z` present. Decision: hand over to the Planner.
+2. **Planner** (0.01 s, fallback, reason "AI disabled"): rule ranking 1. `dependency_failure`, 2. `service_crash`,
+   3. `telemetry_stall`. `telemetry_stall` had been requested, so that proposal went to the gate.
+3. **Human gate**: approved by Anshu at 15:19:55.252 UTC for `telemetry_stall` (planner rank 3). The record keeps the
+   reasons, predicted symptoms and risks that were shown.
+4. **Safety Executor** (30.11 s, ok): run `20261102T151955Z-56a912`, 25 s pause of `fms-forwarder`, COMPLETED. Fault
+   verified; stale detected 5.332 s after injection; HTTP-200 ratio during the fault 1.0; rollback verified by the
+   orchestrator; recovery verified 2.67 s after rollback.
+5. **Analyst** (0.03 s, fallback, reason "AI disabled"): score 46.1; 8 findings over the 46 local run records, 2 of them
+   cite this run.
+6. **Outcome:** completed. Whole session 32.8 s.
 
----
+## 10. Naming map (old to new)
 
-## 16. Commands reference
-
-| Command | What it does | Changes anything? |
+| What | Old | New |
 |---|---|---|
-| `mcop status` | Shows the safety state and the targets | No |
-| `mcop observe -n 10` | Live freshness readings | No |
-| `mcop baseline -n 60` | Records a baseline | No |
-| `mcop run --type T --target X --duration S --approved-by NAME` | Runs one approved experiment | **Yes** (with automatic rollback) |
-| `mcop stop` / `scripts/kill-switch.sh` | Emergency stop | Rolls back |
-| `mcop reset --operator NAME --note TEXT` | Clears a latch after a human check | Safety state only |
-| `mcop runs` / `mcop show RUN_ID` | Lists runs / shows one with a chart | No |
-| `mcop score` / `mcop plan` / `mcop findings` | Score, next-experiment ranking, findings report | No |
-| `mcop deps` / `mcop discover` | Dependency map / re-discovered from Docker | No |
-| `mcop advise [--offline]` | AI planner and analyst | No |
-| `mcop report` | Standalone HTML explainer of a run | No |
-| `mcop serve` | Dashboard and local API | **Yes**: pick one experiment, approve with your typed name |
+| Project name | ResiliencePilot SDV / ResiliencePilot | Multi-Agent Copilot |
+| Python package | `resiliencepilot` | `multiagent_copilot` (`python -m multiagent_copilot`) |
+| Compose project + safety label | `resiliencepilot-sdv` | `multiagent-copilot` |
+| CLI command | `rp` | `mcop` |
+| Environment variables | `RP_LIVE`, `RP_CONFIG_PROFILE`, `RP_APPROVER`, ... | `MCOP_LIVE`, `MCOP_CONFIG_PROFILE`, `MCOP_APPROVER`, ... |
+| Repository | github.com/Anshu-raj-co/ResiliencePilot (unchanged, hackathon record) | github.com/Anshu-raj-co/Multi_Agent_AI_Copilot |
 
----
+Committed evidence under `reports/day1/`, `reports/day2/` and `reports/guardrail-demo/` keeps the old names as recorded.
 
-## 17. Limitations (honest caveats)
+## 11. How to run it
 
-- Faults are container pause/stop only; there is no network-degradation experiment.
-- Small samples (2 to 8 runs per experiment); medians and ranges are reported, not strong statistics.
-- One simulated vehicle, one machine.
-- Detection time is bounded below by the 5 s stale threshold; it partly measures our monitor, not only the stack.
-- The watchdog runs inside the backend process; if that process is killed hard, the fault stays until the kill
-  switch or the next start-up undoes it.
-- The local 7B AI model adds little; 1 of 7 explanations passed the evidence check in both recorded calls.
-- The guardrail demos use deliberately tight thresholds: the latency trip proves the abort path on normal latency,
-  not a real slowdown.
-- Windows was not re-tested after the 2026-10-11 changes.
-- Not production software and not safety-certified.
+Prerequisites: Docker Desktop (running), Python 3.13, Git; on Windows run the `.sh` scripts in Git Bash. Free local
+ports: 8081, 8086, 3000, 7447, 55557.
 
----
+```bash
+git -c core.longpaths=true clone --recurse-submodules https://github.com/Anshu-raj-co/Multi_Agent_AI_Copilot.git
+cd Multi_Agent_AI_Copilot
+./scripts/stack-up.sh && ./scripts/stack-status.sh     # "all 8 services running"
+cd backend
+python3.13 -m venv .venv                               # Windows: py -3.13 -m venv .venv
+.venv/Scripts/pip install -e ".[test]"                 # macOS/Linux: .venv/bin/...
+.venv/Scripts/mcop status                              # must say READY
+.venv/Scripts/mcop observe -n 6                        # FRESH, createdDateTime advancing
+.venv/Scripts/mcop baseline -n 60                      # the Monitor needs a stored baseline
+.venv/Scripts/mcop team run                            # one agent-team session; you approve it
+.venv/Scripts/mcop team sessions                       # list sessions
+.venv/Scripts/mcop team show <session_id>              # read one
+.venv/Scripts/mcop serve                               # dashboard: http://127.0.0.1:8765/
+.venv/Scripts/python -m pytest -q                      # unit tests
+MCOP_LIVE=1 .venv/Scripts/python -m pytest -q          # plus live read-only tests (stack must be up)
+cd .. && ./scripts/kill-switch.sh                      # emergency stop (then: mcop reset --operator NAME --note TEXT)
+./scripts/stack-down.sh                                # stop the stack
+```
 
-## 18. Glossary
+Other commands: `mcop run`, `mcop stop`, `mcop reset`, `mcop runs`, `mcop show RUN_ID`, `mcop score`, `mcop plan`,
+`mcop findings`, `mcop advise [--offline]`, `mcop deps`, `mcop discover`, `mcop show-baseline`, `mcop report`
+(pass `--out reports/generated/...`; the default path overwrites a committed file). The scripted Day-1 demo:
+`MCOP_APPROVER="<name>" ./scripts/demo-day1.sh`.
+
+A fresh clone of the new repository has **not** been tested yet (**UNVERIFIED**); the steps above were run in the
+working copy on Windows 11 on 2 November 2026.
+
+## 12. Evidence and numbers
+
+Only figures verified in run records, logs or test output from this repository:
+
+| Figure | Value | Source |
+|---|---|---|
+| Committed run records (hackathon) | 37: Day 1 12, Day 2 21, guardrail demo 4 (`telemetry_stall` 16, `service_crash` 8, `dependency_failure` 13) | `reports/day1/`, `reports/day2/`, `reports/guardrail-demo/` |
+| Committed team sessions | 1 (completed), with its run record | `reports/team-sessions/` |
+| Resilience Score medians, full-window Day-2 runs | `telemetry_stall` 62.2 (n=2, 60.9–63.5), `service_crash` 65.1 (n=5, 61.9–65.3), `dependency_failure` 61.6 (n=3, 57.5–63.2) | `mcop score --dir reports/day2` |
+| Day-1 `telemetry_stall` median | 55.4 (n=6, 54.2–56.9) | `mcop score --dir reports/day1` |
+| AI analyst evidence check | 1 of 7 explanations passed, in each of the two recorded real calls (`qwen2.5:7b`) | `reports/day2/ai_advice_qwen2.5-7b*.md`, `reports/day2/ai_calls/20261010T233726Z.json` |
+| Unit tests (Windows, 2 Nov 2026) | 518 passed, 3 skipped | `pytest -q` |
+| Live tests (Windows, 2 Nov 2026) | 521 passed | `MCOP_LIVE=1 pytest -q` |
+| Day-1 demo (Windows, 2 Nov 2026) | exit 0 in 47 s: STALE while HTTP 200, 12 s run COMPLETED, kill-switch stop with recovery verified, refused run, reset | `scripts/demo-day1.sh` |
+
+The Resilience Score (0–100) combines detection, recovery, data integrity and blast radius, with a penalty for polls
+that were HTTP 200 but stale; parts that were not measured are left out (`docs/SCORING.md`).
+
+## 13. Honest limits and what we must not claim
+
+- It is **not** built on an agent framework such as LangGraph; the agents are coordinated by our own Python pipeline.
+- It is **not autonomous**: a named human approves every run, and no flag skips that.
+- It is **not self-healing**: it fixes nothing; it injects bounded faults, rolls them back and reports.
+- It is **not production-ready** and **not safety-certified**; it runs only against a local sandbox.
+- The local 7B model adds little: in the recorded real calls only 1 of 7 analyst explanations passed the evidence
+  check. The deterministic layer carries the analysis.
+- The committed team session ran without the LLM; a team session with `--ai` on the live stack is **UNVERIFIED**.
+- Faults are container pause/stop only; no network degradation. Small samples (n = 2–8 per experiment, hackathon runs).
+- One simulated vehicle, one machine. The watchdog runs inside the backend process; a hard-killed backend leaves the
+  fault until the kill switch or the next start-up undoes it.
+
+## 14. Glossary (A to Z)
 
 | Term | Meaning |
 |---|---|
+| Agent | A software component with one job in the pipeline (here: Monitor, Planner, Safety Executor, Analyst) |
+| Allowlist | The fixed list of experiments and targets that may run; anything else is refused |
 | API | A fixed way for one program to ask another for data |
-| Apache-2.0 | A permissive open-source licence |
+| Approval record | The saved proof that a named person approved one experiment, with what they were shown |
 | Baseline | Measurements taken when nothing is wrong, used for comparison |
-| Blast radius | The set of things an experiment is allowed to affect |
-| Chaos engineering | Deliberately injecting failures to find weaknesses before real outages do |
-| CLI | Command-Line Interface: a program you use by typing commands |
-| Container | A small, isolated package holding one program and everything it needs |
-| Deterministic | Always gives the same result for the same input (no randomness) |
-| Docker / Docker Compose | The tool that runs containers / the tool that starts a group of them from one file |
-| Evidence record | The JSON file saved for each run, holding every measurement |
-| Fault injection | Causing a failure on purpose to see how a system reacts |
-| Grounding check | Verifying that an AI answer matches the recorded facts |
-| Guardrail | An automatic tripwire that stops an experiment early |
-| HTTP 200 / 500 | Web status codes: 200 means OK, 500 means server error |
-| JSON / JSON Schema | A common text format for data / strict rules for what valid JSON looks like |
-| Kill switch | An emergency stop that undoes any active fault |
-| Latch (LATCHED_UNSAFE) | A locked safety state that blocks all experiments until a human resets it |
-| Latency / p95 | Response time / the time within which 95 % of responses arrive |
-| LLM | Large Language Model: an AI that reads and writes text |
-| MTTD / MTTR | Mean time to detect / mean time to recover |
-| Ollama | A tool for running LLMs on your own computer |
-| Pull request (PR) | A proposed code change that is reviewed before merging |
-| Resilience | How well a system keeps working and recovers when parts fail |
+| Blast radius | The set of containers an experiment is allowed to affect |
+| Chaos engineering | Causing failures on purpose, in a controlled way, to find weak spots |
+| Compose label | A tag Docker Compose puts on each container; ours is `multiagent-copilot` |
+| Container | An isolated package holding one program and what it needs |
+| Deterministic | Always the same output for the same input; no AI involved |
+| Evidence record (run record) | The JSON file saved for each run with every poll and timing |
+| Fallback | Using the rule-based answer when the LLM is off or its answer is rejected |
+| Fault injection | Causing a failure on purpose |
+| FRESH / STALE | Vehicle data at most / more than 5 s old (or not advancing) |
+| Grounding check | Checking that an AI explanation matches the recorded evidence |
+| Guardrail | An automatic limit that stops an experiment early |
+| HTTP 200 / 500 | Web status codes: OK / server error |
+| Human gate | The step where a named person approves, or nothing runs |
+| Import guard | A test that fails if a module imports something it must not |
+| Kill switch | Emergency stop that works even if the backend has crashed |
+| Latch (LATCHED_UNSAFE) | A locked safety state that blocks experiments until a person resets it |
+| LLM | Large Language Model: an AI that reads and writes text (here `qwen2.5:7b` on Ollama, local only) |
+| Pipeline | A fixed chain of steps; here the five stages of a team session |
 | rFMS | A truck-industry standard API for fleet data |
 | Rollback | Undoing a fault |
-| Root cause | The underlying reason something failed |
 | SDV | Software-Defined Vehicle |
-| Silent failure | A failure that produces no error, so normal monitoring misses it |
-| Stale | Old data that is no longer being refreshed |
-| State machine | A design where something moves between fixed, named states by fixed rules |
-| Submodule | A pointer from one Git repository to an exact version of another |
+| Silent failure | A failure with no error message, so monitoring misses it |
 | Telemetry | Automatic measurements sent from a vehicle |
-| Time-series database | A database for values stored with timestamps |
-| VSS | Vehicle Signal Specification: a standard naming scheme for vehicle data |
-| Watchdog | An independent timer that forces a rollback when time runs out |
-| Zenoh | A fast publish/subscribe messaging protocol used between vehicle and cloud |
+| Trace | The session file that records every hand-off between agents |
+| Watchdog | An independent timer that forces rollback when time runs out |
+
+## 15. Likely faculty questions
+
+**Is this really multi-agent?** It has four agents with distinct roles, separate modules and enforced boundaries
+(import guards), coordinated by an explicit pipeline with a recorded trace and a human gate. It is not a framework of
+free-running, self-directed agents, and we do not claim that; only two agents can use an LLM, and both fall back to
+rules.
+
+**Why not LangGraph or another agent framework?** The safety path must be deterministic and auditable. A small explicit
+pipeline was enough, easy to test, and keeps the safety controller in full control (D-025).
+
+**What does the AI actually contribute?** Little, and we say so: the Planner's order matched the rules, and only 1 of 7
+analyst explanations passed the evidence check. Its value here is showing that AI output is checked and can be rejected.
+
+**Could the AI start or prolong a fault?** No. It has no shell, Docker, credentials or safety-state access; the Safety
+Executor cannot even import the AI module (tested).
+
+**What if the person approving makes a mistake?** They can only choose among allowlisted experiments; the safety
+controller still validates the request, caps the duration, watches guardrails and rolls back.
+
+**Is the data real?** Yes. The blueprint runs locally; every number comes from a recorded run, and the committed session
+in section 9 is a real run.
+
+**Why did you reuse a hackathon project?** Time was short. The lineage is disclosed in the README, this guide and D-024.
+
+## 16. Where to read next
+
+- [MULTI_AGENT_DESIGN.md](MULTI_AGENT_DESIGN.md): the agent team in detail
+- [ARCHITECTURE_OVERVIEW.md](ARCHITECTURE_OVERVIEW.md): components, run lifecycle, trust boundaries
+- [DECISIONS.md](DECISIONS.md): every design decision, D-001 to D-025
+- [demo/MULTI_AGENT_DEMO_SCRIPT.md](demo/MULTI_AGENT_DEMO_SCRIPT.md): the 3-minute demo
+- [SCORING.md](SCORING.md): the Resilience Score formula

@@ -112,9 +112,9 @@ management". Trucks report data such as speed, position, fuel level and driver w
 fleet operator can read it through the **rFMS API**. *rFMS* (remote Fleet Management System) is an industry standard
 web API for truck data.
 
-It is open source under the **Apache-2.0** licence. We use it unmodified, pinned as a *git submodule* (a repository
-inside our repository, locked to one exact version) at upstream commit `3d514ac72a`, in the folder
-`Fleet Management/fleet-management/`.
+It is open source under the **Apache-2.0** licence. We use it unmodified, pinned at upstream commit `3d514ac72a`, in the folder
+`Fleet Management/fleet-management/`. (In the hackathon repository it was a *git submodule*, a repository inside our
+repository; in this repository its files are committed directly and `.gitmodules` still names the upstream.)
 
 Nothing here is a real truck. The "truck" is a CSV file of recorded signals played back in a loop.
 
@@ -248,7 +248,8 @@ All code is in `backend/multiagent_copilot/`.
   shows only real values; anything missing reads "not recorded". It was run end to end from the page on 2026-10-10:
   Start → stale while HTTP 200 → Kill → rollback and recovery verified → Reset.
 - **Explainer page:** a static, read-only report (above), not a control panel.
-- There is **no AI** in the system. **Planned (Day 2).**
+- Day 1 had **no AI**. Since then an advisory AI layer was added (`ai.py`: local Ollama, rule-based fallback; see
+  [PROJECT_A_TO_Z.md](PROJECT_A_TO_Z.md) §8).
 
 *source: `docs/ARCHITECTURE.md`, `backend/multiagent_copilot/*.py` (incl. `api.py`), `backend/pyproject.toml`, `config/*.json`,
 `scripts/kill-switch.sh`, `docs/testing/SAFETY_REVIEW.md`, `docs/DECISIONS.md` D-009–D-011, `README.md`*
@@ -262,7 +263,7 @@ All code is in `backend/multiagent_copilot/`.
 | **Python 3.13** | It was installed, it supports typing, and it is fast to test (D-007). |
 | **pydantic** | Validates the experiment request strictly (`extra="forbid"`: any unknown field is an error). |
 | **httpx** | Makes the HTTP calls to the rFMS API. |
-| **pytest** | The tests on `main`: 317 unit tests, plus 3 live tests that need the running stack (320 with `MCOP_LIVE=1`; verified 2026-10-11 on `main` after PR #29). |
+| **pytest** | The tests now: 518 unit tests pass, 3 skipped (the live tests); 521 pass with `MCOP_LIVE=1` (verified 2026-11-02 on Windows). |
 | **`docker` command line via one wrapper** | One small file that tests can fake; no Docker socket is ever handed to any other component. |
 | **FastAPI + uvicorn** | Run the local API and dashboard (`mcop serve`), bound to 127.0.0.1 only. |
 | **Frontend** | No framework, npm or build step. The dashboard is one static HTML file (inline CSS/JS) served by the API. The explainer is a generated HTML file that needs no server. |
@@ -414,7 +415,7 @@ run with a precise timestamp: 0.6 s from switch to verified rollback.
 - **The watchdog is in-process.** See §8.
 - Two early kill-switch runs (`…084814Z`, `…085240Z`) are labelled COMPLETED. They ran before review fix L1; later
   runs are correctly labelled ABORTED.
-- One experiment type, one vehicle, one host.
+- On Day 1: one experiment type (now three, see [PROJECT_A_TO_Z.md](PROJECT_A_TO_Z.md) §7), one vehicle, one host.
 - Data produced during the pause is lost, not backfilled (listed as a risk in the experiment catalogue).
 
 *source: `README.md`, `docs/demo/DAY1_REPORT.md`, `docs/recon.md` §5, §8, `config/experiments.json`*
@@ -432,12 +433,12 @@ run with a precise timestamp: 0.6 s from switch to verified rollback.
 | Safety controls (automatic stop/rollback) tested | **Done**: watchdog, kill switch, latch; 80 unit + 3 live tests on `main` |
 | Day-1 demo | **Done**: `scripts/demo-day1.sh`, `docs/demo/DAY1_DEMO.md` |
 | Visual impact report | **Done**: explainer page (`mcop report`) |
-| AI experiment planner (ranks experiments from the dependency map) | **Planned (Day 2)** |
-| Three or more failure types (e.g. consumer pause, forwarder crash/restart, InfluxDB stop) | **Planned (Day 2)**; only 1 built |
-| AI findings, severity ranking, fixes, resilience score | **Planned (Day 2)** |
+| AI experiment planner (ranks experiments from the dependency map) | **Done (Day 2)**: rule-based `planner.py`; optional AI reorder in `ai.py` |
+| Three or more failure types (e.g. consumer pause, forwarder crash/restart, InfluxDB stop) | **Done (Day 2)**: three built (forwarder pause, forwarder crash/restart, InfluxDB stop); consumer pause not built |
+| AI findings, severity ranking, fixes, resilience score | **Done (Day 2)**: `findings.py`, `scoring.py` (deterministic), AI explanations in `ai.py` |
 | Interactive dashboard | **Done** (PR #6, merged): `mcop serve`; run live from the page |
 | Windows file-race fix in the safety controller, CLI UTF-8 output | **Done**: PR #10 and PR #9 (merged) |
-| Clean run from scratch, demo video, final README | **Planned (Day 2)** |
+| Clean run from scratch, demo video, final README | Clean run and README **done** (2026-10-11); demo video not recorded |
 
 *source: `docs/ROADMAP.md`, `docs/coordination/CURRENT_STATUS.md`, `docs/coordination/HANDOFF.md`*
 
@@ -445,7 +446,7 @@ run with a precise timestamp: 0.6 s from switch to verified rollback.
 
 ## 12. Run it yourself
 
-> **Test counts below are for `main` after PR #29 (2026-10-11):** 317 unit tests, 320 with the live tests.
+> **Test counts below were verified on Windows on 2026-11-02:** 518 unit tests pass (3 skipped), 521 with the live tests.
 >
 > **Latest clean-clone test (2026-10-11, macOS 27.0.1 on Apple Silicon):** a fresh `git clone` into a new folder,
 > with the cached `fms-server`/`fms-consumer` images deleted first. Every step passed: `stack-up.sh` (both images
@@ -453,7 +454,7 @@ run with a precise timestamp: 0.6 s from switch to verified rollback.
 > full demo (exit 0, 42 s) and `mcop serve`. The steps below use Windows paths (`.venv/Scripts/`); on macOS use
 > `.venv/bin/`. Earlier clean-clone tests on Windows hit two problems, both in the troubleshooting table: the
 > submodule clone failed on a long folder path ("Filename too long"), and CLI output crashed with
-> `UnicodeEncodeError` when piped (fixed by PR #9). Windows was not re-tested after the 2026-10-11 changes.
+> `UnicodeEncodeError` when piped (fixed by PR #9). Windows was re-tested on 2026-11-02: 518 unit tests passed (3 skipped), 521 with the live tests, Day-1 demo exit 0.
 
 ### Prerequisites
 
@@ -490,7 +491,7 @@ python -m venv .venv
 .venv/Scripts/python -m pytest -q
 cd ..
 ```
-Success: `317 passed, 11 skipped` (3 are the live tests; 8 are platform-specific).
+Success on Windows: `518 passed, 3 skipped` (the 3 live tests). On macOS 8 Windows-only tests also skip (not re-measured).
 
 **4. Start the stack**
 ```bash
@@ -505,7 +506,7 @@ cd backend
 .venv/Scripts/python -m multiagent_copilot status       # "state": "READY"
 .venv/Scripts/python -m multiagent_copilot deps         # dependency map with live network checks
 .venv/Scripts/python -m multiagent_copilot observe -n 6 # FRESH lines, createdDateTime advancing
-MCOP_LIVE=1 .venv/Scripts/python -m pytest -q          # 320 passed, 8 skipped
+MCOP_LIVE=1 .venv/Scripts/python -m pytest -q          # 521 passed (Windows)
 ```
 
 **6. Baseline**
@@ -679,9 +680,10 @@ Mostly, yes. It is roughly 5 s minus the data age at injection, and we say so. T
 reports 200 for the whole stall. *(source: `DAY1_REPORT.md`)*
 
 **9. Where is the AI?**
-Not built yet. **Planned (Day 2)**: an advisory planner that ranks approved experiments from the dependency map, and
-a findings engine that compares predictions with measurements, with a rule-based fallback.
-*(source: `docs/ROADMAP.md`)*
+Built on Day 2 as an advisory layer: `ai.py` (local Ollama `qwen2.5:7b`) may reorder the rule-based plan and explain
+findings, with a grounding check and a rule-based fallback. In the recorded real calls only 1 of 7 analyst explanations
+passed the evidence check. In the agent team only the Planner and the Analyst can use it.
+*(source: `backend/multiagent_copilot/ai.py`, `reports/day2/ai_calls/`, [MULTI_AGENT_DESIGN.md](MULTI_AGENT_DESIGN.md))*
 
 **10. How many runs is this based on?**
 12 run records and 2 baselines: 6 full-length stall runs, 5 kill-switch runs and 1 crash test. It is a
@@ -692,5 +694,6 @@ We don't know yet; it is an open question, and the results don't depend on it. *
 
 **12. What would a real fix for the hidden failure look like?**
 Not implemented and not tested by us. The measurements point to one direction: a health check that reads the data's
-own timestamp (`createdDateTime`) instead of only the HTTP status. Generating ranked fixes is **Planned (Day 2)**.
+own timestamp (`createdDateTime`) instead of only the HTTP status. Rule-based verify / mitigate / fix playbooks per
+finding now exist (`ai.py`, shown by `mcop advise`); none of them was implemented or tested on the blueprint.
 *(source: `telemetry.py` approach; `docs/ROADMAP.md`)*

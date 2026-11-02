@@ -453,7 +453,7 @@ New baseline after the `discover._host_path` fix (commit `e7e238f`), Windows, un
 | docs/demo/VIDEO_SCRIPT.md | 33 | 7 docs | \| **1:55–2:00** · Close \| README results table \| "ResiliencePilot: HTTP 200 is not recovery. Fresh data is. |
 | docs/dq/report.html | 24 | 7 docs | <p class="muted">ResiliencePilot data-quality gate · generated 2026-10-11T07:53:36.411Z · store |
 | docs/PROJECT_A_TO_Z.md | 1 | 7 docs | # ResiliencePilot SDV: the A-to-Z guide |
-| docs/PROJECT_A_TO_Z.md | 11 | 7 docs | 4. [How ResiliencePilot works: all the parts](#4-how-resiliencepilot-works-all-the-parts) |
+| docs/PROJECT_A_TO_Z.md | 11 | 7 docs | 4. \[How ResiliencePilot works: all the parts\](#4-how-resiliencepilot-works-all-the-parts) |
 | docs/PROJECT_A_TO_Z.md | 42 | 7 docs | **ResiliencePilot** is a tool that: |
 | docs/PROJECT_A_TO_Z.md | 116 | 7 docs | mode). Our override file 'config/compose/resiliencepilot.override.yaml' switches them to 'bridge' (single-mach |
 | docs/PROJECT_A_TO_Z.md | 123 | 7 docs | ## 4. How ResiliencePilot works: all the parts |

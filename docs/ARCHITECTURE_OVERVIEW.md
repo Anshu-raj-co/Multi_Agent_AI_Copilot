@@ -76,12 +76,12 @@ VERIFYING_RECOVERY → COMPLETED | ABORTED | LATCHED_UNSAFE`
    independently of the API and UI, and the kill switch works without the backend.
 3. **AI is advisory:** no shell, Docker, credentials or safety state; it can only reorder allowlisted proposals,
    and its root causes must match the recorded evidence or are replaced by the rule-based answer. Severity ranking
-   (`findings.py`) and the Resilience Score (`scoring.py`) are deterministic; the AI computes neither. In the one
-   recorded real model call (`qwen2.5:7b`, `reports/day2/ai_advice_qwen2.5-7b.md`) the planner kept the rule-based
-   order and 1 of 7 analyst explanations passed validation.
+   (`findings.py`) and the Resilience Score (`scoring.py`) are deterministic; the AI computes neither. In the two
+   recorded real model calls (`qwen2.5:7b`, `reports/day2/ai_advice_qwen2.5-7b*.md`) the planner kept the rule-based
+   order and 1 of 7 analyst explanations passed validation each time.
 4. **Evidence over claims:** every number in reports and on the dashboard is read from a run record.
 
 ## Tech
 
 Python 3.13 (FastAPI, httpx, pydantic), Docker CLI, vanilla HTML/SVG dashboard, Ollama (`qwen2.5:7b`) for the
-optional AI layer. 317 unit tests (320 with the live tests behind `MCOP_LIVE=1`).
+optional AI layer. 518 unit tests pass, 3 skipped (521 with the live tests behind `MCOP_LIVE=1`; Windows, 2026-11-02).
