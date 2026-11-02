@@ -16,9 +16,19 @@ telemetry, never from HTTP 200 alone.
 
 Not production software and not safety-certified. Faults only ever target the local Compose sandbox.
 
+## The story in brief
+
+A fleet's screen can say "everything is fine" while the truck data on it is old and frozen. This project tests for that
+by switching off one small part of a real fleet system for a few seconds, and only after a named person approves.
+A small team of program parts watches, suggests a test, runs it carefully, undoes it and explains the result.
+In the recorded tests, the system flagged the frozen data about 5 seconds after the freeze began, while the screen still
+said "all fine". It counts something as recovered only when fresh data is flowing again, never because the screen says
+so. Strict safety rules, a 30-second limit and an emergency stop keep every test small and reversible. The full story,
+for readers without a technical background: [docs/PROJECT_STORY.md](docs/PROJECT_STORY.md).
+
 ![Live dashboard: the System in 3D view (blueprint containers, agent pipeline, safety layer) on a real stack](docs/demo/system-3d-normal-1200.png)
 
-**Contents:** [Results](#results) · [How it works](#how-it-works) · [Quick start](#quick-start) ·
+**Contents:** [The story in brief](#the-story-in-brief) · [Results](#results) · [How it works](#how-it-works) · [Quick start](#quick-start) ·
 [Commands](#commands) · [Multi-agent copilot](#multi-agent-copilot) · [Safety model](#safety-model) · [What the AI does](#what-the-ai-does-and-does-not-do) · [Limitations](#limitations) · [Documentation](#documentation)
 
 ## Results
@@ -205,6 +215,7 @@ API, dashboard panels and the System in 3D view were added for this project.
 
 Start here:
 
+- [docs/PROJECT_STORY.md](docs/PROJECT_STORY.md): the project as a story, for non-technical readers
 - [docs/PROJECT_A_TO_Z.md](docs/PROJECT_A_TO_Z.md): the A-to-Z guide (whole project, plain language)
 - [docs/MULTI_AGENT_DESIGN.md](docs/MULTI_AGENT_DESIGN.md): the agent team, trace and import guards
 - [docs/ARCHITECTURE_OVERVIEW.md](docs/ARCHITECTURE_OVERVIEW.md): one-page architecture

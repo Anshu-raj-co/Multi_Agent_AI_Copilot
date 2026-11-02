@@ -1,5 +1,7 @@
 # Multi-Agent Copilot: the A-to-Z guide
 
+New to the topic? Start with the non-technical [project story](PROJECT_STORY.md); this guide is the technical reference.
+
 This guide explains the whole project to someone who has never seen it. It uses plain language, and every technical
 term is defined the first time it appears (the glossary in section 14 repeats them). Every number comes from a run
 record, a log or a test run in this repository, with its source named. Anything not verified is marked **UNVERIFIED**.
@@ -383,6 +385,7 @@ and D-024.
 
 ## 16. Where to read next
 
+- [PROJECT_STORY.md](PROJECT_STORY.md): the whole project as a story, for non-technical readers
 - [MULTI_AGENT_DESIGN.md](MULTI_AGENT_DESIGN.md): the agent team in detail
 - [ARCHITECTURE_OVERVIEW.md](ARCHITECTURE_OVERVIEW.md): components, run lifecycle, trust boundaries
 - [DECISIONS.md](DECISIONS.md): every design decision, D-001 to D-025
