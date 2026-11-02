@@ -194,6 +194,9 @@ Baseline on Windows: 403 passed, 3 skipped, 1 failed
 (test_host_path_mapping). Earlier 317/11 was macOS, before the
 data-quality package (+79 tests).
 
+New baseline after the `discover._host_path` fix (commit `e7e238f`), Windows, unit tests:
+`404 passed, 3 skipped, 1 warning in 140.96s (0:02:20)`.
+
 ## Risks I see
 
 1. **Precondition conflict, Phase 2:** `backend/.venv` exists (the rule says it must not, and also says never modify
